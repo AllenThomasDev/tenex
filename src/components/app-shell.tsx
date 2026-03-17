@@ -4,6 +4,7 @@ import * as React from "react"
 import { differenceInCalendarDays, format } from "date-fns"
 
 import { AppSidebar } from "@/components/app-sidebar"
+import { DayEvents } from "@/components/day-events"
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
 import { Chat } from "@/app/chat"
 
@@ -89,6 +90,7 @@ export function AppShell({ user }: AppShellProps) {
                     </h1>
                   </div>
                 ) : null}
+                {selectedDate ? <DayEvents date={selectedDate} /> : null}
                 <Chat />
               </div>
             ) : null}
