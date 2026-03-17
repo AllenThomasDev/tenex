@@ -6,16 +6,19 @@ import {
   SidebarGroupContent,
 } from "@/components/ui/sidebar"
 
-export function DatePicker() {
-  const [date, setDate] = React.useState<Date | undefined>(() => new Date())
+type DatePickerProps = {
+  date?: Date
+  onSelect: (date: Date | undefined) => void
+}
 
+export function DatePicker({ date, onSelect }: DatePickerProps) {
   return (
     <SidebarGroup className="px-0">
       <SidebarGroupContent>
         <Calendar
           mode="single"
           selected={date}
-          onSelect={setDate}
+          onSelect={onSelect}
           captionLayout="dropdown"
           className="bg-transparent [--cell-size:2.1rem]"
         />

@@ -17,9 +17,16 @@ type AppSidebarProps = React.ComponentProps<typeof Sidebar> & {
     email: string
     image?: string | null
   }
+  selectedDate?: Date
+  onSelectDate?: (date: Date | undefined) => void
 }
 
-export function AppSidebar({ user, ...props }: AppSidebarProps) {
+export function AppSidebar({
+  user,
+  selectedDate,
+  onSelectDate = () => {},
+  ...props
+}: AppSidebarProps) {
   return (
     <Sidebar {...props}>
       <SidebarHeader className="h-16 border-b border-sidebar-border">
@@ -32,7 +39,7 @@ export function AppSidebar({ user, ...props }: AppSidebarProps) {
         />
       </SidebarHeader>
       <SidebarContent>
-        <DatePicker />
+        <DatePicker date={selectedDate} onSelect={onSelectDate} />
       </SidebarContent>
       <SidebarRail />
     </Sidebar>
