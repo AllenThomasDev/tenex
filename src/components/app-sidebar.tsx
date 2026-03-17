@@ -3,12 +3,9 @@
 import * as React from "react"
 
 import { DatePicker } from "@/components/date-picker"
-import { NavUser } from "@/components/nav-user"
 import {
   Sidebar,
   SidebarContent,
-  SidebarFooter,
-  SidebarHeader,
   SidebarRail,
 } from "@/components/ui/sidebar"
 
@@ -30,19 +27,9 @@ export function AppSidebar({
 }: AppSidebarProps) {
   return (
     <Sidebar {...props}>
-      <SidebarHeader />
-      <SidebarContent>
+      <SidebarContent className="pt-10">
         <DatePicker date={selectedDate} onSelect={onSelectDate} />
       </SidebarContent>
-      <SidebarFooter className="border-t border-sidebar-border">
-        <NavUser
-          user={{
-            name: user.name,
-            email: user.email,
-            avatar: user.image,
-          }}
-        />
-      </SidebarFooter>
       <SidebarRail />
     </Sidebar>
   )

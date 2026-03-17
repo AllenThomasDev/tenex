@@ -56,7 +56,7 @@ export function ChatPanel({ dayKey }: ChatPanelProps) {
   return (
     <div
       className={cn(
-        "fixed top-0 right-0 z-40 h-dvh w-full",
+        "fixed top-10 right-0 z-40 h-[calc(100dvh-2.5rem)] w-full",
         "bg-background border-l border-border",
         "flex flex-row shadow-[-4px_0_12px_-4px_rgba(0,0,0,0.08)] dark:shadow-[-4px_0_12px_-4px_rgba(0,0,0,0.25)]",
         "transition-transform duration-300 ease-in-out",

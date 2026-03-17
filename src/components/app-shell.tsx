@@ -8,7 +8,7 @@ import { DayEvents } from "@/components/day-events"
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
 import { ChatPanelProvider } from "@/components/chat-provider"
 import { ChatPanel } from "@/components/chat-panel"
-import { FloatingAssistantButton } from "@/components/floating-assistant-button"
+import { AppNavbar } from "@/components/app-navbar"
 import { getCalendarDayKey } from "@/lib/calendar-day"
 
 type AppShellProps = {
@@ -58,6 +58,8 @@ export function AppShell({ user }: AppShellProps) {
 
   return (
     <ChatPanelProvider>
+      <AppNavbar user={user} />
+      <div className="overflow-hidden">
       <SidebarProvider>
         {user ? (
           <AppSidebar
@@ -69,7 +71,7 @@ export function AppShell({ user }: AppShellProps) {
         <SidebarInset id="main-content">
           <div className="flex h-svh flex-col bg-zinc-50 dark:bg-black">
             <div className="flex-1 overflow-y-auto">
-              <div className="mx-auto w-full max-w-2xl px-6 py-10">
+              <div className="mx-auto w-full max-w-2xl px-6 pt-16">
                 {user ? (
                   <div className="flex flex-col gap-8">
                     <div
@@ -99,9 +101,9 @@ export function AppShell({ user }: AppShellProps) {
           </div>
         </SidebarInset>
       </SidebarProvider>
+      </div>
 
       <ChatPanel dayKey={selectedDayKey} />
-      <FloatingAssistantButton />
     </ChatPanelProvider>
   )
 }
