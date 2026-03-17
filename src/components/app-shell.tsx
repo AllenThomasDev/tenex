@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { format } from "date-fns"
+import { differenceInCalendarDays, format } from "date-fns"
 
 import { AppSidebar } from "@/components/app-sidebar"
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
@@ -31,6 +31,29 @@ export function AppShell({ user }: AppShellProps) {
     setSelectedDate(nextDate)
   }
 
+  const dateContextLabel = React.useMemo(() => {
+    if (!selectedDate) {
+      return null
+    }
+
+    const dayOffset = differenceInCalendarDays(selectedDate, new Date())
+
+    switch (dayOffset) {
+      case -2:
+        return "Day before yesterday"
+      case -1:
+        return "Yesterday"
+      case 0:
+        return "Today"
+      case 1:
+        return "Tomorrow"
+      case 2:
+        return "Day after tomorrow"
+      default:
+        return null
+    }
+  }, [selectedDate])
+
   return (
     <SidebarProvider>
       {user ? (
@@ -46,16 +69,25 @@ export function AppShell({ user }: AppShellProps) {
             {user ? (
               <div className="flex w-full max-w-4xl flex-col gap-8">
                 {selectedDate ? (
-                  <h1
+                  <div
                     key={selectedDate.toISOString()}
-                    className={`animate-in fade-in duration-400 text-4xl font-bold tracking-tight text-zinc-900 dark:text-zinc-100 ${
+                    className={`animate-in fade-in duration-400 ${
                       dateMotion === "right"
                         ? "slide-in-from-right-6"
                         : "slide-in-from-left-6"
                     }`}
                   >
-                    {format(selectedDate, "EEEE MMMM d, yyyy")}
-                  </h1>
+                    <p
+                      className={`mb-2 text-sm font-medium tracking-normal text-zinc-500 dark:text-zinc-400 ${
+                        dateContextLabel ? "visible" : "invisible"
+                      }`}
+                    >
+                      {dateContextLabel ?? "Today"}
+                    </p>
+                    <h1 className="text-4xl font-bold tracking-tight text-zinc-900 dark:text-zinc-100">
+                      {format(selectedDate, "EEEE MMMM d, yyyy")}
+                    </h1>
+                  </div>
                 ) : null}
                 <Chat />
               </div>
