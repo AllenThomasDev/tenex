@@ -1,15 +1,34 @@
 import { auth } from "@/auth";
 import { google } from "googleapis";
+import { headers } from "next/headers";
 
 export async function GET() {
-  const session = await auth();
+  const requestHeaders = await headers();
+  const session = await auth.api.getSession({ headers: requestHeaders });
 
-  if (!session?.accessToken) {
+  if (!session) {
     return Response.json({ error: "Not authenticated" }, { status: 401 });
   }
 
+  const account = await auth.api
+    .getAccessToken({
+      headers: requestHeaders,
+      body: {
+        providerId: "google",
+        userId: session.user.id,
+      },
+    })
+    .catch(() => null);
+
+  if (!account?.accessToken) {
+    return Response.json(
+      { error: "No Google access token available" },
+      { status: 401 },
+    );
+  }
+
   const oauth2Client = new google.auth.OAuth2();
-  oauth2Client.setCredentials({ access_token: session.accessToken });
+  oauth2Client.setCredentials({ access_token: account.accessToken });
 
   const calendar = google.calendar({ version: "v3", auth: oauth2Client });
 

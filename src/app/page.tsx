@@ -1,8 +1,10 @@
-import { auth, signIn, signOut } from "@/auth";
+import { auth } from "@/auth";
+import { headers } from "next/headers";
+import { redirect } from "next/navigation";
 import { CalendarEvents } from "./calendar-events";
 
 export default async function Home() {
-  const session = await auth();
+  const session = await auth.api.getSession({ headers: await headers() });
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-zinc-50 dark:bg-black">
@@ -10,13 +12,14 @@ export default async function Home() {
         {session ? (
           <>
             <p className="text-lg text-zinc-900 dark:text-zinc-100">
-              Signed in as {session.user?.email}
+              Signed in as {session.user.email}
             </p>
             <CalendarEvents />
             <form
               action={async () => {
                 "use server";
-                await signOut();
+                await auth.api.signOut({ headers: await headers() });
+                redirect("/");
               }}
             >
               <button className="rounded-full bg-zinc-900 px-6 py-3 text-white transition-colors hover:bg-zinc-700 dark:bg-zinc-100 dark:text-black dark:hover:bg-zinc-300">
@@ -32,7 +35,16 @@ export default async function Home() {
             <form
               action={async () => {
                 "use server";
-                await signIn("google");
+                const result = await auth.api.signInSocial({
+                  body: {
+                    provider: "google",
+                    callbackURL: "/",
+                  },
+                });
+
+                if (result?.url) {
+                  redirect(result.url);
+                }
               }}
             >
               <button className="rounded-full bg-zinc-900 px-6 py-3 text-white transition-colors hover:bg-zinc-700 dark:bg-zinc-100 dark:text-black dark:hover:bg-zinc-300">

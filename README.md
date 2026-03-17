@@ -14,7 +14,7 @@ An AI-powered calendar assistant that connects to Google Calendar and provides a
 - **Framework**: Next.js (App Router)
 - **Language**: TypeScript
 - **Styling**: Tailwind CSS
-- **Auth**: NextAuth.js (Google provider)
+- **Auth**: Better Auth (Google provider)
 - **LLM**: Claude via AI SDK + @ai-sdk/anthropic
 - **Calendar**: Google Calendar API v3
 

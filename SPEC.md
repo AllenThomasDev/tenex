@@ -76,7 +76,7 @@ These are the things that separate a demo from a production system:
 |---|---|---|
 | Framework | Next.js (App Router) | React requirement satisfied. Full-stack in one project. API routes for OAuth + backend logic. |
 | Styling | Tailwind CSS | Fast iteration, polished output |
-| Auth | NextAuth.js (Google provider) | Handles OAuth flow, token refresh, session management |
+| Auth | Better Auth (Google provider) | Handles OAuth flow, token/session management |
 | Calendar API | Google Calendar API v3 | Direct REST via googleapis npm package |
 | LLM | Claude API (Anthropic SDK) | Tool use support, strong reasoning for multi-step scheduling |
 | Deployment | Vercel | Zero-config for Next.js, easy to share a live link |
@@ -128,7 +128,7 @@ These are the things that separate a demo from a production system:
 
 ### Phase 1: Foundation
 1. Next.js project setup with Tailwind
-2. Google OAuth via NextAuth.js
+2. Google OAuth via Better Auth
 3. Basic calendar data fetching
 
 ### Phase 2: Calendar UI
