@@ -8,6 +8,7 @@ import useSWR from "swr"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { cn } from "@/lib/utils"
+import { getCalendarDayKey } from "@/lib/calendar-day"
 
 type DayEvent = {
   id?: string
@@ -26,14 +27,7 @@ type CalendarDayResponse = {
 
 type DayEventsProps = {
   date: Date
-}
-
-function toDateParam(date: Date) {
-  const year = date.getFullYear()
-  const month = String(date.getMonth() + 1).padStart(2, "0")
-  const day = String(date.getDate()).padStart(2, "0")
-
-  return `${year}-${month}-${day}`
+  dayKey?: string
 }
 
 function formatTime(dateString?: string) {
@@ -98,17 +92,10 @@ async function fetchEvents(url: string): Promise<DayEvent[]> {
   return data.events
 }
 
-export function DayEvents({ date }: DayEventsProps) {
-  const dateParam = React.useMemo(() => toDateParam(date), [date])
-  const timezoneOffset = React.useMemo(() => date.getTimezoneOffset(), [dateParam])
-
-  const searchParams = new URLSearchParams({
-    date: dateParam,
-    timeZoneOffset: String(timezoneOffset),
-  })
-
+export function DayEvents({ date, dayKey }: DayEventsProps) {
+  const swrKey = React.useMemo(() => dayKey ?? getCalendarDayKey(date), [date, dayKey])
   const { data: events, error, isLoading, mutate } = useSWR<DayEvent[]>(
-    `/api/calendar?${searchParams.toString()}`,
+    swrKey,
     fetchEvents,
   )
 

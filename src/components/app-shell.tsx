@@ -7,6 +7,7 @@ import { AppSidebar } from "@/components/app-sidebar"
 import { DayEvents } from "@/components/day-events"
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
 import { Chat } from "@/app/chat"
+import { getCalendarDayKey } from "@/lib/calendar-day"
 
 type AppShellProps = {
   user: {
@@ -21,6 +22,10 @@ export function AppShell({ user }: AppShellProps) {
     () => new Date()
   )
   const [dateMotion, setDateMotion] = React.useState<"left" | "right">("left")
+  const selectedDayKey = React.useMemo(
+    () => (selectedDate ? getCalendarDayKey(selectedDate) : null),
+    [selectedDate]
+  )
 
   function handleSelectDate(date: Date | undefined) {
     const nextDate = date ?? new Date()
@@ -90,8 +95,8 @@ export function AppShell({ user }: AppShellProps) {
                     </h1>
                   </div>
                 ) : null}
-                {selectedDate ? <DayEvents date={selectedDate} /> : null}
-                <Chat />
+                {selectedDate ? <DayEvents date={selectedDate} dayKey={selectedDayKey ?? undefined} /> : null}
+                <Chat dayKey={selectedDayKey} />
               </div>
             ) : null}
           </main>
