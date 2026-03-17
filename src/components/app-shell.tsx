@@ -69,9 +69,9 @@ export function AppShell({ user }: AppShellProps) {
           onSelectDate={handleSelectDate}
         />
       ) : null}
-      <SidebarInset>
+      <SidebarInset id="main-content">
         <div className="flex min-h-screen bg-zinc-50 dark:bg-black">
-          <main className="flex w-full justify-center px-6 py-10">
+          <div className="flex w-full justify-center px-6 py-10">
             {user ? (
               <div className="flex w-full max-w-4xl flex-col gap-8">
                 {selectedDate ? (
@@ -99,7 +99,7 @@ export function AppShell({ user }: AppShellProps) {
                 <Chat dayKey={selectedDayKey} />
               </div>
             ) : null}
-          </main>
+          </div>
         </div>
       </SidebarInset>
     </SidebarProvider>

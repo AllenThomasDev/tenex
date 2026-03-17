@@ -100,10 +100,18 @@ export function DayEvents({ date, dayKey }: DayEventsProps) {
   )
 
   return (
-    <section className="space-y-4">
-      <div className="flex flex-wrap items-end justify-end gap-3">
-        <p className="text-sm text-zinc-500 dark:text-zinc-400">
-          {isLoading ? "Refreshing events..." : `${events?.length ?? 0} planned`}
+    <section aria-labelledby="events-heading" className="space-y-4">
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div className="space-y-1">
+          <h2 id="events-heading" className="text-xl font-semibold text-zinc-950 dark:text-zinc-50">
+            Events
+          </h2>
+          <p className="text-sm text-zinc-500 dark:text-zinc-400">
+            Your schedule for the selected day.
+          </p>
+        </div>
+        <p aria-live="polite" className="text-sm text-zinc-500 dark:text-zinc-400">
+          {isLoading ? "Refreshing events…" : `${events?.length ?? 0} planned`}
         </p>
       </div>
 
@@ -153,7 +161,7 @@ export function DayEvents({ date, dayKey }: DayEventsProps) {
                 )}
               >
                 <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div className="space-y-2">
+                  <div className="min-w-0 space-y-2">
                     <div className="flex flex-wrap items-center gap-2">
                       <span
                         className={cn(
@@ -175,7 +183,7 @@ export function DayEvents({ date, dayKey }: DayEventsProps) {
                       ) : null}
                     </div>
 
-                    <h3 className="text-lg font-semibold text-zinc-950 dark:text-zinc-50">
+                    <h3 className="break-words text-lg font-semibold text-zinc-950 dark:text-zinc-50">
                       {event.title}
                     </h3>
                   </div>
@@ -188,9 +196,9 @@ export function DayEvents({ date, dayKey }: DayEventsProps) {
                 {event.location || event.attendeesCount > 0 ? (
                   <div className="mt-4 flex flex-wrap gap-4 text-sm text-zinc-600 dark:text-zinc-300">
                     {event.location ? (
-                      <div className="inline-flex items-center gap-2">
+                      <div className="inline-flex min-w-0 items-center gap-2">
                         <MapPin className="size-4 text-zinc-400 dark:text-zinc-500" />
-                        <span>{event.location}</span>
+                        <span className="break-words">{event.location}</span>
                       </div>
                     ) : null}
 

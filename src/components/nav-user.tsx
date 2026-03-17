@@ -66,7 +66,7 @@ export function NavUser({
                 <AvatarImage src={user.avatar ?? undefined} alt={displayName} />
                 <AvatarFallback className="rounded-lg">{fallback}</AvatarFallback>
               </Avatar>
-              <div className="grid flex-1 text-left text-sm leading-tight">
+              <div className="grid min-w-0 flex-1 text-left text-sm leading-tight">
                 <span className="truncate font-medium">{displayName}</span>
               </div>
               <ChevronsUpDownIcon className="ml-auto size-4" />
@@ -84,7 +84,7 @@ export function NavUser({
                   <AvatarImage src={user.avatar ?? undefined} alt={displayName} />
                 <AvatarFallback className="rounded-lg">{fallback}</AvatarFallback>
                 </Avatar>
-                <div className="grid flex-1 text-left text-sm leading-tight">
+                <div className="grid min-w-0 flex-1 text-left text-sm leading-tight">
                   <span className="truncate font-medium">{displayName}</span>
                   <span className="truncate text-xs">{user.email}</span>
                 </div>

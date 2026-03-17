@@ -5,6 +5,9 @@ import { getToolName, isToolUIPart } from "ai";
 import { useEffect, useRef, useState } from "react";
 import { useSWRConfig } from "swr";
 
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+
 type ChatProps = {
   dayKey?: string | null
 }
@@ -22,7 +25,7 @@ function renderToolMessage(part: Parameters<typeof getToolName>[0] & {
   const toolName = getToolName(part);
 
   if (part.state !== "output-available") {
-    return "Loading calendar events...";
+    return "Loading calendar events…";
   }
 
   if (toolName === "createEvent") {
@@ -46,6 +49,7 @@ function renderToolMessage(part: Parameters<typeof getToolName>[0] & {
 
 export function Chat({ dayKey }: ChatProps) {
   const [input, setInput] = useState("");
+  const [pendingConfirmation, setPendingConfirmation] = useState<string | null>(null);
   const { messages, sendMessage, status } = useChat();
   const { mutate } = useSWRConfig();
   const refreshedToolCallIdsRef = useRef(new Set<string>());
@@ -85,13 +89,29 @@ export function Chat({ dayKey }: ChatProps) {
     }
   }, [dayKey, messages, mutate]);
 
+  function sendPrompt(prompt: string) {
+    sendMessage({ text: prompt });
+    setInput("");
+    setPendingConfirmation(null);
+  }
+
+  function isPotentiallyDestructivePrompt(prompt: string) {
+    return /\b(delete|remove|cancel|decline)\b/i.test(prompt);
+  }
+
   return (
     <div className="flex w-full max-w-lg flex-col gap-4">
-      <div className="flex flex-col gap-3 overflow-y-auto">
+      <div
+        aria-label="Calendar assistant conversation"
+        aria-live="polite"
+        aria-relevant="additions text"
+        role="log"
+        className="flex flex-col gap-3 overflow-y-auto"
+      >
         {messages.map((message) => (
           <div
             key={message.id}
-            className={`rounded-lg px-4 py-3 ${
+            className={`max-w-full rounded-lg px-4 py-3 ${
               message.role === "user"
                 ? "self-end bg-zinc-900 text-white dark:bg-zinc-100 dark:text-black"
                 : "self-start bg-zinc-100 text-zinc-900 dark:bg-zinc-800 dark:text-zinc-100"
@@ -100,7 +120,7 @@ export function Chat({ dayKey }: ChatProps) {
             {message.parts.map((part, i) => {
               if (part.type === "text") {
                 return (
-                  <p key={i} className="whitespace-pre-wrap">
+                  <p key={i} className="whitespace-pre-wrap break-words">
                     {part.text}
                   </p>
                 );
@@ -118,28 +138,75 @@ export function Chat({ dayKey }: ChatProps) {
         ))}
       </div>
 
+      {pendingConfirmation ? (
+        <div className="rounded-2xl border border-amber-300/60 bg-amber-50/80 p-4 text-sm text-amber-950 dark:border-amber-700/40 dark:bg-amber-950/40 dark:text-amber-100">
+          <p className="font-medium">Confirm Destructive Action</p>
+          <p className="mt-1 text-amber-900/80 dark:text-amber-100/80">
+            This request may modify or remove an event immediately.
+          </p>
+          <div className="mt-3 flex gap-2">
+            <Button
+              type="button"
+              variant="destructive"
+              onClick={() => sendPrompt(pendingConfirmation)}
+            >
+              Confirm
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setPendingConfirmation(null)}
+            >
+              Keep Editing
+            </Button>
+          </div>
+        </div>
+      ) : null}
+
       <form
         onSubmit={(e) => {
           e.preventDefault();
           if (!input.trim()) return;
-          sendMessage({ text: input });
-          setInput("");
+          if (isPotentiallyDestructivePrompt(input)) {
+            setPendingConfirmation(input);
+            return;
+          }
+
+          sendPrompt(input);
         }}
         className="flex gap-2"
       >
-        <input
+        <label className="sr-only" htmlFor="calendar-chat-input">
+          Ask the calendar assistant
+        </label>
+        <Input
+          id="calendar-chat-input"
+          aria-describedby={pendingConfirmation ? "calendar-chat-warning" : undefined}
+          autoComplete="off"
+          name="calendarPrompt"
+          spellCheck={false}
           value={input}
-          onChange={(e) => setInput(e.target.value)}
+          onChange={(e) => {
+            setInput(e.target.value);
+            if (pendingConfirmation) {
+              setPendingConfirmation(null);
+            }
+          }}
           placeholder="Ask about your calendar…"
-          className="flex-1 rounded-lg border border-zinc-300 bg-white px-4 py-2 text-zinc-900 placeholder-zinc-400 outline-none focus:border-zinc-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:placeholder-zinc-500 dark:focus:border-zinc-500"
+          className="h-10 flex-1 rounded-lg border-zinc-300 bg-white px-4 dark:border-zinc-700 dark:bg-zinc-900"
         />
-        <button
+        <Button
           type="submit"
           disabled={isLoading || !input.trim()}
-          className="rounded-lg bg-zinc-900 px-4 py-2 text-white transition-colors hover:bg-zinc-700 disabled:opacity-50 dark:bg-zinc-100 dark:text-black dark:hover:bg-zinc-300"
+          className="h-10 px-4"
         >
           Send
-        </button>
+        </Button>
+        {pendingConfirmation ? (
+          <p id="calendar-chat-warning" className="sr-only">
+            This request needs confirmation before it is sent.
+          </p>
+        ) : null}
       </form>
     </div>
   );
