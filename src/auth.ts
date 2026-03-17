@@ -17,7 +17,6 @@ export const auth = betterAuth({
         "https://www.googleapis.com/auth/calendar.events",
       ],
       accessType: "offline",
-      prompt: "consent",
     },
   },
 });
