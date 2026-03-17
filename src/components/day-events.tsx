@@ -102,13 +102,10 @@ export function DayEvents({ date, dayKey }: DayEventsProps) {
   return (
     <section aria-labelledby="events-heading" className="space-y-4">
       <div className="flex flex-wrap items-end justify-between gap-3">
-        <div className="space-y-1">
+        <div>
           <h2 id="events-heading" className="text-xl font-semibold text-zinc-950 dark:text-zinc-50">
             Events
           </h2>
-          <p className="text-sm text-zinc-500 dark:text-zinc-400">
-            Your schedule for the selected day.
-          </p>
         </div>
         <p aria-live="polite" className="text-sm text-zinc-500 dark:text-zinc-400">
           {isLoading ? "Refreshing events…" : `${events?.length ?? 0} planned`}

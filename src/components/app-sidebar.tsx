@@ -18,8 +18,8 @@ type AppSidebarProps = React.ComponentProps<typeof Sidebar> & {
     email: string
     image?: string | null
   }
-  selectedDate?: Date
-  onSelectDate?: (date: Date | undefined) => void
+  selectedDate: Date
+  onSelectDate?: (date: Date) => void
 }
 
 export function AppSidebar({

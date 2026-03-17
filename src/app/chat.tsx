@@ -2,7 +2,7 @@
 
 import { useChat } from "@ai-sdk/react";
 import { getToolName, isToolUIPart } from "ai";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useSWRConfig } from "swr";
 
 import { Button } from "@/components/ui/button";
@@ -53,6 +53,7 @@ export function Chat({ dayKey }: ChatProps) {
   const { messages, sendMessage, status } = useChat();
   const { mutate } = useSWRConfig();
   const refreshedToolCallIdsRef = useRef(new Set<string>());
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const isLoading = status === "submitted" || status === "streaming";
 
@@ -89,6 +90,10 @@ export function Chat({ dayKey }: ChatProps) {
     }
   }, [dayKey, messages, mutate]);
 
+  useLayoutEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "instant" });
+  }, [messages]);
+
   function sendPrompt(prompt: string) {
     sendMessage({ text: prompt });
     setInput("");
@@ -100,43 +105,46 @@ export function Chat({ dayKey }: ChatProps) {
   }
 
   return (
-    <div className="flex w-full max-w-lg flex-col gap-4">
-      <div
-        aria-label="Calendar assistant conversation"
-        aria-live="polite"
-        aria-relevant="additions text"
-        role="log"
-        className="flex flex-col gap-3 overflow-y-auto"
-      >
-        {messages.map((message) => (
-          <div
-            key={message.id}
-            className={`max-w-full rounded-lg px-4 py-3 ${
-              message.role === "user"
-                ? "self-end bg-zinc-900 text-white dark:bg-zinc-100 dark:text-black"
-                : "self-start bg-zinc-100 text-zinc-900 dark:bg-zinc-800 dark:text-zinc-100"
-            }`}
-          >
-            {message.parts.map((part, i) => {
-              if (part.type === "text") {
-                return (
-                  <p key={i} className="whitespace-pre-wrap break-words">
-                    {part.text}
-                  </p>
-                );
-              }
-              if (isToolUIPart(part)) {
-                return (
-                  <p key={i} className="text-sm italic text-zinc-500">
-                    {renderToolMessage(part)}
-                  </p>
-                );
-              }
-              return null;
-            })}
-          </div>
-        ))}
-      </div>
+    <div className="flex w-full flex-col gap-3">
+      {messages.length > 0 ? (
+        <div
+          aria-label="Calendar assistant conversation"
+          aria-live="polite"
+          aria-relevant="additions text"
+          role="log"
+          className="flex max-h-64 flex-col gap-3 overflow-y-auto"
+        >
+          {messages.map((message) => (
+            <div
+              key={message.id}
+              className={`max-w-full rounded-lg px-4 py-3 ${
+                message.role === "user"
+                  ? "self-end bg-zinc-900 text-white dark:bg-zinc-100 dark:text-black"
+                  : "self-start bg-zinc-100 text-zinc-900 dark:bg-zinc-800 dark:text-zinc-100"
+              }`}
+            >
+              {message.parts.map((part, i) => {
+                if (part.type === "text") {
+                  return (
+                    <p key={i} className="whitespace-pre-wrap break-words">
+                      {part.text}
+                    </p>
+                  );
+                }
+                if (isToolUIPart(part)) {
+                  return (
+                    <p key={i} className="text-sm italic text-zinc-500">
+                      {renderToolMessage(part)}
+                    </p>
+                  );
+                }
+                return null;
+              })}
+            </div>
+          ))}
+          <div ref={messagesEndRef} />
+        </div>
+      ) : null}
 
       {pendingConfirmation ? (
         <div className="rounded-2xl border border-amber-300/60 bg-amber-50/80 p-4 text-sm text-amber-950 dark:border-amber-700/40 dark:bg-amber-950/40 dark:text-amber-100">

@@ -7,8 +7,8 @@ import {
 } from "@/components/ui/sidebar"
 
 type DatePickerProps = {
-  date?: Date
-  onSelect: (date: Date | undefined) => void
+  date: Date
+  onSelect: (date: Date) => void
 }
 
 export function DatePicker({ date, onSelect }: DatePickerProps) {
@@ -17,6 +17,7 @@ export function DatePicker({ date, onSelect }: DatePickerProps) {
       <SidebarGroupContent>
         <Calendar
           mode="single"
+          required
           selected={date}
           onSelect={onSelect}
           captionLayout="dropdown"

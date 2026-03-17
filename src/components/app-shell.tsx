@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { differenceInCalendarDays, format } from "date-fns"
+import { differenceInCalendarDays, format, isSameDay } from "date-fns"
 
 import { AppSidebar } from "@/components/app-sidebar"
 import { DayEvents } from "@/components/day-events"
@@ -18,30 +18,24 @@ type AppShellProps = {
 }
 
 export function AppShell({ user }: AppShellProps) {
-  const [selectedDate, setSelectedDate] = React.useState<Date | undefined>(
-    () => new Date()
-  )
+  const [selectedDate, setSelectedDate] = React.useState<Date>(() => new Date())
   const [dateMotion, setDateMotion] = React.useState<"left" | "right">("left")
   const selectedDayKey = React.useMemo(
-    () => (selectedDate ? getCalendarDayKey(selectedDate) : null),
+    () => getCalendarDayKey(selectedDate),
     [selectedDate]
   )
 
-  function handleSelectDate(date: Date | undefined) {
-    const nextDate = date ?? new Date()
-
-    if (selectedDate) {
-      setDateMotion(nextDate > selectedDate ? "right" : "left")
+  function handleSelectDate(nextDate: Date) {
+    if (isSameDay(nextDate, selectedDate)) {
+      return
     }
+
+    setDateMotion(nextDate > selectedDate ? "right" : "left")
 
     setSelectedDate(nextDate)
   }
 
   const dateContextLabel = React.useMemo(() => {
-    if (!selectedDate) {
-      return null
-    }
-
     const dayOffset = differenceInCalendarDays(selectedDate, new Date())
 
     switch (dayOffset) {
@@ -70,11 +64,11 @@ export function AppShell({ user }: AppShellProps) {
         />
       ) : null}
       <SidebarInset id="main-content">
-        <div className="flex min-h-screen bg-zinc-50 dark:bg-black">
-          <div className="flex w-full justify-center px-6 py-10">
-            {user ? (
-              <div className="flex w-full max-w-4xl flex-col gap-8">
-                {selectedDate ? (
+        <div className="flex h-svh flex-col bg-zinc-50 dark:bg-black">
+          <div className="flex-1 overflow-y-auto">
+            <div className="mx-auto w-full max-w-2xl px-6 py-10">
+              {user ? (
+                <div className="flex flex-col gap-8">
                   <div
                     key={selectedDate.toISOString()}
                     className={`animate-in fade-in duration-400 ${
@@ -94,12 +88,18 @@ export function AppShell({ user }: AppShellProps) {
                       {format(selectedDate, "EEEE MMMM d, yyyy")}
                     </h1>
                   </div>
-                ) : null}
-                {selectedDate ? <DayEvents date={selectedDate} dayKey={selectedDayKey ?? undefined} /> : null}
+                  <DayEvents date={selectedDate} dayKey={selectedDayKey} />
+                </div>
+              ) : null}
+            </div>
+          </div>
+          {user ? (
+            <div className="shrink-0 border-t border-zinc-200 bg-zinc-50/95 px-6 py-4 backdrop-blur-sm dark:border-zinc-800 dark:bg-black/95">
+              <div className="mx-auto w-full max-w-2xl">
                 <Chat dayKey={selectedDayKey} />
               </div>
-            ) : null}
-          </div>
+            </div>
+          ) : null}
         </div>
       </SidebarInset>
     </SidebarProvider>
