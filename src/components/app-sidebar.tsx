@@ -6,6 +6,7 @@ import { DatePicker } from "@/components/date-picker"
 import {
   Sidebar,
   SidebarContent,
+  SidebarHeader,
   SidebarRail,
 } from "@/components/ui/sidebar"
 
@@ -27,7 +28,8 @@ export function AppSidebar({
 }: AppSidebarProps) {
   return (
     <Sidebar {...props}>
-      <SidebarContent className="pt-10">
+      <SidebarHeader className="h-10 border-b border-sidebar-border" />
+      <SidebarContent>
         <DatePicker date={selectedDate} onSelect={onSelectDate} />
       </SidebarContent>
       <SidebarRail />

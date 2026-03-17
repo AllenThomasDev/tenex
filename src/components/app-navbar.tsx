@@ -1,6 +1,6 @@
 "use client"
 
-import { CalendarDays, Bot, LogOutIcon } from "lucide-react"
+import { CalendarDays, LogOutIcon } from "lucide-react"
 import { useRouter } from "next/navigation"
 
 import { authClient } from "@/auth-client"
@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { cn } from "@/lib/utils"
 import { useChatPanel } from "@/components/chat-provider"
+import { assistant } from "@/lib/assistant"
 
 type AppNavbarProps = {
   user: {
@@ -64,7 +65,7 @@ export function AppNavbar({ user }: AppNavbarProps) {
           <button
             type="button"
             onClick={toggleChat}
-            title="Assistant (⌘I)"
+            title={`${assistant.name} (⌘I)`}
             className={cn(
               "relative flex h-7 w-7 items-center justify-center rounded-md",
               "cursor-pointer transition-all duration-200",
@@ -72,7 +73,7 @@ export function AppNavbar({ user }: AppNavbarProps) {
               state.isOpen && "bg-accent/60 text-foreground",
             )}
           >
-            <Bot className="h-4 w-4" />
+            <span className="[&>svg]:h-4 [&>svg]:w-4">{assistant.icon}</span>
             {state.isWorking && (
               <span className="absolute inset-0 rounded-md border border-foreground/20 animate-ping" />
             )}

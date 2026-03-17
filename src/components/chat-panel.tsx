@@ -1,7 +1,6 @@
 "use client"
 
 import { useCallback, useEffect, useRef, useState } from "react"
-import { Bot, ChevronRight, X } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 import { Chat } from "@/app/chat"
@@ -16,7 +15,7 @@ const MIN_PANEL_WIDTH = 320
 const MAX_PANEL_WIDTH = 700
 
 export function ChatPanel({ dayKey }: ChatPanelProps) {
-  const { state, closeChat } = useChatPanel()
+  const { state } = useChatPanel()
   const [panelWidth, setPanelWidth] = useState(DEFAULT_PANEL_WIDTH)
   const dragRef = useRef<{ startX: number; startWidth: number } | null>(null)
 
@@ -72,38 +71,6 @@ export function ChatPanel({ dayKey }: ChatPanelProps) {
 
       {/* Panel content */}
       <div className="flex-1 min-w-0 flex flex-col">
-        {/* Side chevron close tab */}
-        <button
-          type="button"
-          onClick={closeChat}
-          className={cn(
-            "absolute -left-6 top-1/2 -translate-y-1/2 z-10",
-            "flex items-center justify-center pl-1 pr-0.5",
-            "w-6 h-10 rounded-l-full",
-            "bg-background border border-r-0 border-border",
-            "text-muted-foreground hover:text-foreground",
-            "cursor-pointer transition-all duration-200",
-            !state.isOpen && "hidden",
-          )}
-        >
-          <ChevronRight className="w-3 h-3" />
-        </button>
-
-        {/* Panel header */}
-        <div className="shrink-0 flex items-center gap-1.5 pl-3 pr-2 py-1.5 border-b border-border/60">
-          <Bot className="w-3.5 h-3.5 text-foreground/50" />
-          <span className="text-xs font-medium text-foreground/70 truncate">
-            Assistant
-          </span>
-          <button
-            type="button"
-            onClick={closeChat}
-            className="ml-auto p-0.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent/60 transition-all duration-150 cursor-pointer"
-          >
-            <X className="w-3 h-3" />
-          </button>
-        </div>
-
         {/* Chat content */}
         <div className="flex-1 min-h-0 flex flex-col">
           <Chat dayKey={dayKey} />

@@ -5,9 +5,9 @@ import { getToolName, isToolUIPart } from "ai";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useSWRConfig } from "swr";
 
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { ArrowUp } from "lucide-react";
 import { useChatPanel } from "@/components/chat-provider";
+import { assistant } from "@/lib/assistant";
 
 type ChatProps = {
   dayKey?: string | null
@@ -50,11 +50,11 @@ function renderToolMessage(part: Parameters<typeof getToolName>[0] & {
 
 export function Chat({ dayKey }: ChatProps) {
   const [input, setInput] = useState("");
-  const [pendingConfirmation, setPendingConfirmation] = useState<string | null>(null);
   const { messages, sendMessage, status } = useChat();
   const { mutate } = useSWRConfig();
   const refreshedToolCallIdsRef = useRef(new Set<string>());
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const isLoading = status === "submitted" || status === "streaming";
   const { setIsWorking } = useChatPanel();
@@ -93,14 +93,17 @@ export function Chat({ dayKey }: ChatProps) {
     messagesEndRef.current?.scrollIntoView({ behavior: "instant" });
   }, [messages]);
 
+  // Auto-resize textarea as content grows
+  useEffect(() => {
+    const el = textareaRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${el.scrollHeight}px`;
+  }, [input]);
+
   function sendPrompt(prompt: string) {
     sendMessage({ text: prompt });
     setInput("");
-    setPendingConfirmation(null);
-  }
-
-  function isPotentiallyDestructivePrompt(prompt: string) {
-    return /\b(delete|remove|cancel|decline)\b/i.test(prompt);
   }
 
   return (
@@ -113,6 +116,15 @@ export function Chat({ dayKey }: ChatProps) {
         role="log"
         className="flex flex-1 min-h-0 flex-col gap-3 overflow-y-auto p-4"
       >
+        {messages.length === 0 && (
+          <div className="flex flex-1 flex-col items-center justify-center gap-2">
+            <span className="text-muted-foreground [&>svg]:size-8">{assistant.icon}</span>
+            <div className="text-center">
+              <p className="text-sm font-medium text-muted-foreground">{assistant.name}</p>
+              <p className="text-xs text-muted-foreground/60">{assistant.tagline}</p>
+            </div>
+          </div>
+        )}
         {messages.map((message) => (
           <div
             key={message.id}
@@ -144,75 +156,52 @@ export function Chat({ dayKey }: ChatProps) {
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Pinned bottom: confirmation + input */}
-      <div className="shrink-0 border-t border-zinc-200 dark:border-zinc-800">
-        {pendingConfirmation ? (
-          <div className="border-b border-amber-300/60 bg-amber-50/80 px-4 py-3 text-sm text-amber-950 dark:border-amber-700/40 dark:bg-amber-950/40 dark:text-amber-100">
-            <p className="font-medium">Confirm Destructive Action</p>
-            <p className="mt-1 text-amber-900/80 dark:text-amber-100/80">
-              This request may modify or remove an event immediately.
-            </p>
-            <div className="mt-3 flex gap-2">
-              <Button
-                type="button"
-                variant="destructive"
-                onClick={() => sendPrompt(pendingConfirmation)}
-              >
-                Confirm
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setPendingConfirmation(null)}
-              >
-                Keep Editing
-              </Button>
-            </div>
-          </div>
-        ) : null}
-
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            if (!input.trim()) return;
-            if (isPotentiallyDestructivePrompt(input)) {
-              setPendingConfirmation(input);
-              return;
-            }
-            sendPrompt(input);
-          }}
-          className="flex gap-2 p-3"
-        >
+      {/* Pinned input */}
+      <div className="shrink-0 p-3">
+        <div className="rounded-xl border border-border/60 bg-card/50 transition-all duration-200 focus-within:border-foreground/15 focus-within:bg-background focus-within:shadow-[0_0_0_1px_rgba(0,0,0,0.04)] dark:border-white/8 dark:bg-white/[0.02] dark:focus-within:border-white/12 dark:focus-within:bg-white/[0.03] dark:focus-within:shadow-[0_0_0_1px_rgba(255,255,255,0.03)]">
           <label className="sr-only" htmlFor="calendar-chat-input">
             Ask the calendar assistant
           </label>
-          <Input
-            id="calendar-chat-input"
-            aria-describedby={pendingConfirmation ? "calendar-chat-warning" : undefined}
-            autoComplete="off"
-            name="calendarPrompt"
-            spellCheck={false}
-            value={input}
-            onChange={(e) => {
-              setInput(e.target.value);
-              if (pendingConfirmation) setPendingConfirmation(null);
-            }}
-            placeholder="Ask about your calendar…"
-            className="h-10 flex-1 rounded-lg border-zinc-300 bg-white px-4 dark:border-zinc-700 dark:bg-zinc-900"
-          />
-          <Button
-            type="submit"
-            disabled={isLoading || !input.trim()}
-            className="h-10 px-4"
-          >
-            Send
-          </Button>
-          {pendingConfirmation ? (
-            <p id="calendar-chat-warning" className="sr-only">
-              This request needs confirmation before it is sent.
-            </p>
-          ) : null}
-        </form>
+          <div className="flex items-end">
+            <textarea
+              ref={textareaRef}
+              id="calendar-chat-input"
+              data-ghost-input
+              rows={1}
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  if (!input.trim() || isLoading) return;
+                  sendPrompt(input);
+                }
+              }}
+              placeholder="Ask about your calendar…"
+              autoComplete="off"
+              spellCheck={false}
+              className="min-h-[38px] flex-1 resize-none overflow-y-auto bg-transparent py-2.5 pl-3.5 pr-1.5 text-[13px] placeholder:text-muted-foreground focus:outline-none"
+            />
+            <div className="shrink-0 pb-1.5 pr-1.5">
+              <button
+                type="button"
+                onClick={() => { if (input.trim() && !isLoading) sendPrompt(input); }}
+                disabled={!input.trim() || isLoading}
+                title="Send (Enter)"
+                className={`inline-flex h-7 w-7 items-center justify-center rounded-full transition-all duration-150 ${
+                  input.trim() && !isLoading
+                    ? "cursor-pointer bg-foreground text-background hover:bg-foreground/90"
+                    : "cursor-default bg-muted/50 text-muted-foreground dark:bg-white/5"
+                }`}
+              >
+                <ArrowUp className="size-3.5" />
+              </button>
+            </div>
+          </div>
+        </div>
+        <p className="mt-1.5 text-center text-[11px] text-muted-foreground/50">
+          AI can make mistakes. Verify important details.
+        </p>
       </div>
     </div>
   );
