@@ -1,7 +1,7 @@
 import { auth } from "@/auth";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
-import { CalendarEvents } from "./calendar-events";
+import { Chat } from "./chat";
 
 export default async function Home() {
   const session = await auth.api.getSession({ headers: await headers() });
@@ -14,7 +14,7 @@ export default async function Home() {
             <p className="text-lg text-zinc-900 dark:text-zinc-100">
               Signed in as {session.user.email}
             </p>
-            <CalendarEvents />
+            <Chat />
             <form
               action={async () => {
                 "use server";
