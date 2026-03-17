@@ -1,4 +1,5 @@
 import { auth, signIn, signOut } from "@/auth";
+import { CalendarEvents } from "./calendar-events";
 
 export default async function Home() {
   const session = await auth();
@@ -11,6 +12,7 @@ export default async function Home() {
             <p className="text-lg text-zinc-900 dark:text-zinc-100">
               Signed in as {session.user?.email}
             </p>
+            <CalendarEvents />
             <form
               action={async () => {
                 "use server";
