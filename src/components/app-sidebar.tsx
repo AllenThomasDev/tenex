@@ -7,6 +7,7 @@ import { NavUser } from "@/components/nav-user"
 import {
   Sidebar,
   SidebarContent,
+  SidebarFooter,
   SidebarHeader,
   SidebarRail,
 } from "@/components/ui/sidebar"
@@ -29,7 +30,11 @@ export function AppSidebar({
 }: AppSidebarProps) {
   return (
     <Sidebar {...props}>
-      <SidebarHeader className="h-16 border-b border-sidebar-border">
+      <SidebarHeader />
+      <SidebarContent>
+        <DatePicker date={selectedDate} onSelect={onSelectDate} />
+      </SidebarContent>
+      <SidebarFooter className="border-t border-sidebar-border">
         <NavUser
           user={{
             name: user.name,
@@ -37,10 +42,7 @@ export function AppSidebar({
             avatar: user.image,
           }}
         />
-      </SidebarHeader>
-      <SidebarContent>
-        <DatePicker date={selectedDate} onSelect={onSelectDate} />
-      </SidebarContent>
+      </SidebarFooter>
       <SidebarRail />
     </Sidebar>
   )
