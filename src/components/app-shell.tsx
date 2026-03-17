@@ -6,7 +6,9 @@ import { differenceInCalendarDays, format, isSameDay } from "date-fns"
 import { AppSidebar } from "@/components/app-sidebar"
 import { DayEvents } from "@/components/day-events"
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
-import { Chat } from "@/app/chat"
+import { ChatPanelProvider } from "@/components/chat-provider"
+import { ChatPanel } from "@/components/chat-panel"
+import { FloatingAssistantButton } from "@/components/floating-assistant-button"
 import { getCalendarDayKey } from "@/lib/calendar-day"
 
 type AppShellProps = {
@@ -55,53 +57,51 @@ export function AppShell({ user }: AppShellProps) {
   }, [selectedDate])
 
   return (
-    <SidebarProvider>
-      {user ? (
-        <AppSidebar
-          user={user}
-          selectedDate={selectedDate}
-          onSelectDate={handleSelectDate}
-        />
-      ) : null}
-      <SidebarInset id="main-content">
-        <div className="flex h-svh flex-col bg-zinc-50 dark:bg-black">
-          <div className="flex-1 overflow-y-auto">
-            <div className="mx-auto w-full max-w-2xl px-6 py-10">
-              {user ? (
-                <div className="flex flex-col gap-8">
-                  <div
-                    key={selectedDate.toISOString()}
-                    className={`animate-in fade-in duration-400 ${
-                      dateMotion === "right"
-                        ? "slide-in-from-right-6"
-                        : "slide-in-from-left-6"
-                    }`}
-                  >
-                    <p
-                      className={`mb-2 text-sm font-medium tracking-normal text-zinc-500 dark:text-zinc-400 ${
-                        dateContextLabel ? "visible" : "invisible"
+    <ChatPanelProvider>
+      <SidebarProvider>
+        {user ? (
+          <AppSidebar
+            user={user}
+            selectedDate={selectedDate}
+            onSelectDate={handleSelectDate}
+          />
+        ) : null}
+        <SidebarInset id="main-content">
+          <div className="flex h-svh flex-col bg-zinc-50 dark:bg-black">
+            <div className="flex-1 overflow-y-auto">
+              <div className="mx-auto w-full max-w-2xl px-6 py-10">
+                {user ? (
+                  <div className="flex flex-col gap-8">
+                    <div
+                      key={selectedDate.toISOString()}
+                      className={`animate-in fade-in duration-400 ${
+                        dateMotion === "right"
+                          ? "slide-in-from-right-6"
+                          : "slide-in-from-left-6"
                       }`}
                     >
-                      {dateContextLabel ?? "Today"}
-                    </p>
-                    <h1 className="text-4xl font-bold tracking-tight text-zinc-900 dark:text-zinc-100">
-                      {format(selectedDate, "EEEE MMMM d, yyyy")}
-                    </h1>
+                      <p
+                        className={`mb-2 text-sm font-medium tracking-normal text-zinc-500 dark:text-zinc-400 ${
+                          dateContextLabel ? "visible" : "invisible"
+                        }`}
+                      >
+                        {dateContextLabel ?? "Today"}
+                      </p>
+                      <h1 className="text-4xl font-bold tracking-tight text-zinc-900 dark:text-zinc-100">
+                        {format(selectedDate, "EEEE MMMM d, yyyy")}
+                      </h1>
+                    </div>
+                    <DayEvents date={selectedDate} dayKey={selectedDayKey} />
                   </div>
-                  <DayEvents date={selectedDate} dayKey={selectedDayKey} />
-                </div>
-              ) : null}
-            </div>
-          </div>
-          {user ? (
-            <div className="shrink-0 border-t border-zinc-200 bg-zinc-50/95 px-6 py-4 backdrop-blur-sm dark:border-zinc-800 dark:bg-black/95">
-              <div className="mx-auto w-full max-w-2xl">
-                <Chat dayKey={selectedDayKey} />
+                ) : null}
               </div>
             </div>
-          ) : null}
-        </div>
-      </SidebarInset>
-    </SidebarProvider>
+          </div>
+        </SidebarInset>
+      </SidebarProvider>
+
+      <ChatPanel dayKey={selectedDayKey} />
+      <FloatingAssistantButton />
+    </ChatPanelProvider>
   )
 }
