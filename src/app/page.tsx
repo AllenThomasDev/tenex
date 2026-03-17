@@ -12,10 +12,10 @@ export default async function Home() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 dark:bg-black">
+    <div className="flex min-h-screen items-center justify-center bg-background">
       <main id="main-content" className="flex flex-col items-center gap-8 px-6 text-center">
         <>
-          <h1 className="text-balance text-3xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
+          <h1 className="text-balance text-3xl font-semibold tracking-tight text-foreground">
             Calendar Assistant
           </h1>
           <form

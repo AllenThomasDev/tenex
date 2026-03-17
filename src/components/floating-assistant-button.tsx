@@ -16,7 +16,7 @@ export function FloatingAssistantButton() {
         "fixed top-4 right-4 z-30",
         "flex items-center justify-center",
         "w-8 h-8 rounded-full",
-        "border border-border/60 dark:border-white/10",
+        "border border-border/60",
         "bg-background/80 backdrop-blur-sm",
         "shadow-sm hover:shadow-md",
         "text-muted-foreground/60 hover:text-foreground",

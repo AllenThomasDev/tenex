@@ -65,7 +65,7 @@ function DayEventsSkeleton() {
       {Array.from({ length: 3 }).map((_, index) => (
         <div
           key={index}
-          className="rounded-3xl border border-zinc-200/70 bg-white/80 p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900/80"
+          className="rounded-3xl border border-border bg-background p-5 shadow-sm"
         >
           <Skeleton className="h-4 w-32" />
           <Skeleton className="mt-4 h-7 w-2/3" />
@@ -103,11 +103,11 @@ export function DayEvents({ date, dayKey }: DayEventsProps) {
     <section aria-labelledby="events-heading" className="space-y-4">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h2 id="events-heading" className="text-xl font-semibold text-zinc-950 dark:text-zinc-50">
+          <h2 id="events-heading" className="text-xl font-semibold text-foreground">
             Events
           </h2>
         </div>
-        <p aria-live="polite" className="text-sm text-zinc-500 dark:text-zinc-400">
+        <p aria-live="polite" className="text-sm text-muted-foreground">
           {isLoading ? "Refreshing events…" : `${events?.length ?? 0} planned`}
         </p>
       </div>
@@ -115,9 +115,9 @@ export function DayEvents({ date, dayKey }: DayEventsProps) {
       {isLoading ? <DayEventsSkeleton /> : null}
 
       {!isLoading && error ? (
-        <div className="rounded-3xl border border-amber-300/60 bg-amber-50/80 p-5 text-amber-950 dark:border-amber-700/40 dark:bg-amber-950/40 dark:text-amber-100">
+        <div className="rounded-3xl border border-destructive/40 bg-destructive/10 p-5 text-destructive">
           <p className="text-sm font-medium">Couldn&apos;t load the day&apos;s events.</p>
-          <p className="mt-1 text-sm text-amber-900/80 dark:text-amber-100/80">{error.message}</p>
+          <p className="mt-1 text-sm text-destructive/80">{error.message}</p>
           <Button
             className="mt-4"
             variant="outline"
@@ -129,14 +129,14 @@ export function DayEvents({ date, dayKey }: DayEventsProps) {
       ) : null}
 
       {!isLoading && !error && events?.length === 0 ? (
-        <div className="rounded-3xl border border-dashed border-zinc-300 bg-white/70 p-8 text-center dark:border-zinc-700 dark:bg-zinc-900/70">
-          <div className="mx-auto flex size-12 items-center justify-center rounded-2xl bg-zinc-100 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-300">
+        <div className="rounded-3xl border border-dashed border-border bg-muted/30 p-8 text-center">
+          <div className="mx-auto flex size-12 items-center justify-center rounded-2xl bg-muted text-muted-foreground">
             <CalendarRange className="size-5" />
           </div>
-          <h3 className="mt-4 text-lg font-semibold text-zinc-950 dark:text-zinc-50">
+          <h3 className="mt-4 text-lg font-semibold text-foreground">
             No events for this day
           </h3>
-          <p className="mt-2 text-sm text-zinc-500 dark:text-zinc-400">
+          <p className="mt-2 text-sm text-muted-foreground">
             Your schedule is clear. Use the chat to plan something new.
           </p>
         </div>
@@ -153,8 +153,8 @@ export function DayEvents({ date, dayKey }: DayEventsProps) {
                 className={cn(
                   "rounded-3xl border p-5 shadow-sm transition-colors",
                   event.isAllDay
-                    ? "border-sky-200 bg-sky-50/70 dark:border-sky-800/60 dark:bg-sky-950/30"
-                    : "border-zinc-200/70 bg-white/85 dark:border-zinc-800 dark:bg-zinc-900/80",
+                    ? "border-primary/30 bg-primary/10"
+                    : "border-border bg-card",
                 )}
               >
                 <div className="flex flex-wrap items-start justify-between gap-3">
@@ -164,8 +164,8 @@ export function DayEvents({ date, dayKey }: DayEventsProps) {
                         className={cn(
                           "inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium",
                           event.isAllDay
-                            ? "bg-sky-600/10 text-sky-700 dark:bg-sky-400/15 dark:text-sky-200"
-                            : "bg-zinc-950 text-white dark:bg-zinc-100 dark:text-zinc-950",
+                            ? "bg-primary/10 text-primary"
+                            : "bg-foreground text-background",
                         )}
                       >
                         {event.isAllDay
@@ -173,35 +173,35 @@ export function DayEvents({ date, dayKey }: DayEventsProps) {
                           : `${formatTime(event.start)} - ${formatTime(event.end)}`}
                       </span>
                       {duration ? (
-                        <span className="inline-flex items-center gap-1 text-sm text-zinc-500 dark:text-zinc-400">
+                        <span className="inline-flex items-center gap-1 text-sm text-muted-foreground">
                           <Clock3 className="size-3.5" />
                           {duration}
                         </span>
                       ) : null}
                     </div>
 
-                    <h3 className="break-words text-lg font-semibold text-zinc-950 dark:text-zinc-50">
+                    <h3 className="break-words text-lg font-semibold text-foreground">
                       {event.title}
                     </h3>
                   </div>
 
-                  <div className="rounded-full border border-zinc-200 bg-zinc-50 px-3 py-1 text-sm font-medium text-zinc-600 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300">
+                  <div className="rounded-full border border-border bg-muted px-3 py-1 text-sm font-medium text-muted-foreground">
                     {index + 1}
                   </div>
                 </div>
 
                 {event.location || event.attendeesCount > 0 ? (
-                  <div className="mt-4 flex flex-wrap gap-4 text-sm text-zinc-600 dark:text-zinc-300">
+                  <div className="mt-4 flex flex-wrap gap-4 text-sm text-muted-foreground">
                     {event.location ? (
                       <div className="inline-flex min-w-0 items-center gap-2">
-                        <MapPin className="size-4 text-zinc-400 dark:text-zinc-500" />
+                        <MapPin className="size-4 text-muted-foreground/60" />
                         <span className="break-words">{event.location}</span>
                       </div>
                     ) : null}
 
                     {event.attendeesCount > 0 ? (
                       <div className="inline-flex items-center gap-2">
-                        <Users className="size-4 text-zinc-400 dark:text-zinc-500" />
+                        <Users className="size-4 text-muted-foreground/60" />
                         <span>
                           {event.attendeesCount} attendee
                           {event.attendeesCount === 1 ? "" : "s"}

@@ -130,8 +130,8 @@ export function Chat({ dayKey }: ChatProps) {
             key={message.id}
             className={`max-w-full rounded-lg px-4 py-3 ${
               message.role === "user"
-                ? "self-end bg-zinc-900 text-white dark:bg-zinc-100 dark:text-black"
-                : "self-start bg-zinc-100 text-zinc-900 dark:bg-zinc-800 dark:text-zinc-100"
+                ? "self-end bg-foreground text-background"
+                : "self-start bg-muted text-foreground"
             }`}
           >
             {message.parts.map((part, i) => {
@@ -144,7 +144,7 @@ export function Chat({ dayKey }: ChatProps) {
               }
               if (isToolUIPart(part)) {
                 return (
-                  <p key={i} className="text-sm italic text-zinc-500">
+                  <p key={i} className="text-sm italic text-muted-foreground">
                     {renderToolMessage(part)}
                   </p>
                 );
@@ -158,7 +158,7 @@ export function Chat({ dayKey }: ChatProps) {
 
       {/* Pinned input */}
       <div className="shrink-0 p-3">
-        <div className="rounded-xl border border-border/60 bg-card/50 transition-all duration-200 focus-within:border-foreground/15 focus-within:bg-background focus-within:shadow-[0_0_0_1px_rgba(0,0,0,0.04)] dark:border-white/8 dark:bg-white/[0.02] dark:focus-within:border-white/12 dark:focus-within:bg-white/[0.03] dark:focus-within:shadow-[0_0_0_1px_rgba(255,255,255,0.03)]">
+        <div className="rounded-xl border border-border/60 bg-card/50 transition-all duration-200 focus-within:border-foreground/15 focus-within:bg-background">
           <label className="sr-only" htmlFor="calendar-chat-input">
             Ask the calendar assistant
           </label>
@@ -191,7 +191,7 @@ export function Chat({ dayKey }: ChatProps) {
                 className={`inline-flex h-7 w-7 items-center justify-center rounded-full transition-all duration-150 ${
                   input.trim() && !isLoading
                     ? "cursor-pointer bg-foreground text-background hover:bg-foreground/90"
-                    : "cursor-default bg-muted/50 text-muted-foreground dark:bg-white/5"
+                    : "cursor-default bg-muted/50 text-muted-foreground"
                 }`}
               >
                 <ArrowUp className="size-3.5" />

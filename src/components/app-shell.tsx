@@ -69,7 +69,7 @@ export function AppShell({ user }: AppShellProps) {
           />
         ) : null}
         <SidebarInset id="main-content">
-          <div className="flex h-svh flex-col bg-zinc-50 dark:bg-black">
+          <div className="flex h-svh flex-col bg-background">
             <div className="flex-1 overflow-y-auto">
               <div className="mx-auto w-full max-w-2xl px-6 pt-16">
                 {user ? (
@@ -83,13 +83,13 @@ export function AppShell({ user }: AppShellProps) {
                       }`}
                     >
                       <p
-                        className={`mb-2 text-sm font-medium tracking-normal text-zinc-500 dark:text-zinc-400 ${
+                        className={`mb-2 text-sm font-medium tracking-normal text-muted-foreground ${
                           dateContextLabel ? "visible" : "invisible"
                         }`}
                       >
                         {dateContextLabel ?? "Today"}
                       </p>
-                      <h1 className="text-4xl font-bold tracking-tight text-zinc-900 dark:text-zinc-100">
+                      <h1 className="text-4xl font-bold tracking-tight text-foreground">
                         {format(selectedDate, "EEEE MMMM d, yyyy")}
                       </h1>
                     </div>
