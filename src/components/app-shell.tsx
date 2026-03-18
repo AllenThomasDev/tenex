@@ -9,6 +9,7 @@ import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
 import { ChatPanelProvider } from "@/components/chat-provider"
 import { ChatPanel } from "@/components/chat-panel"
 import { AppNavbar } from "@/components/app-navbar"
+import { CommandMenu } from "@/components/command-menu"
 import { getCalendarDayKey } from "@/lib/calendar-day"
 
 type AppShellProps = {
@@ -103,6 +104,7 @@ export function AppShell({ user }: AppShellProps) {
       </SidebarProvider>
       </div>
 
+      <CommandMenu onSelectDate={handleSelectDate} />
       <ChatPanel dayKey={selectedDayKey} />
     </ChatPanelProvider>
   )

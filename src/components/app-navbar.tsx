@@ -21,8 +21,9 @@ import { assistant } from "@/lib/assistant"
 const THEME_KEY = "color-theme"
 
 const themes = [
-  { id: "default", label: "Default", color: "oklch(0.205 0 0)" },
-  { id: "yellow", label: "Yellow", color: "oklch(0.852 0.199 91.936)" },
+  { id: "default",    label: "Default",    color: "oklch(0.205 0 0)" },
+  { id: "catppuccin", label: "Catppuccin", color: "oklch(0.5547 0.2503 297.0156)" },
+  { id: "yellow",     label: "Yellow",     color: "oklch(0.852 0.199 91.936)" },
 ] as const
 
 type ThemeId = (typeof themes)[number]["id"]
