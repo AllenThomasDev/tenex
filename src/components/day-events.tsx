@@ -18,6 +18,17 @@ type DayEvent = {
   isAllDay: boolean
   location?: string
   attendeesCount: number
+  attendees?: { email?: string; displayName?: string; responseStatus?: string; self?: boolean; optional?: boolean }[]
+  status?: string
+  htmlLink?: string
+  description?: string
+  hangoutLink?: string
+  conferenceLink?: string
+  organizer?: { email?: string; displayName?: string; self?: boolean }
+  selfResponseStatus?: string
+  colorId?: string
+  recurringEventId?: string
+  visibility?: string
 }
 
 type CalendarDayResponse = {
@@ -28,6 +39,8 @@ type CalendarDayResponse = {
 type DayEventsProps = {
   date: Date
   dayKey?: string
+  selectedEventId?: string | null
+  onSelectEvent?: (id: string | null) => void
 }
 
 function formatTime(dateString?: string) {
@@ -94,14 +107,25 @@ function EventDetails({
 function DenseEventCard({
   event,
   index,
+  isSelected,
+  onSelect,
 }: {
   event: DayEvent
   index: number
+  isSelected?: boolean
+  onSelect?: () => void
 }) {
   const hasDetails = Boolean(event.location) || event.attendeesCount > 0
 
   return (
-    <article className="group border border-border bg-card text-card-foreground transition-colors hover:border-primary">
+    <article
+      className={cn(
+        "group border border-border bg-card text-card-foreground transition-colors hover:border-primary",
+        isSelected && "border-primary ring-1 ring-primary/30",
+        onSelect && "cursor-pointer",
+      )}
+      onClick={onSelect}
+    >
       <div className="grid gap-px bg-border md:grid-cols-[auto_minmax(0,1fr)_auto]">
         <div className="bg-card px-3 py-2.5">
           <div className="flex min-h-10 items-center text-[11px] font-medium uppercase tracking-[0.22em] text-muted-foreground [font-family:var(--font-geist-mono)]">
@@ -169,7 +193,7 @@ async function fetchEvents(url: string): Promise<DayEvent[]> {
   return data.events
 }
 
-export function DayEvents({ date, dayKey }: DayEventsProps) {
+export function DayEvents({ date, dayKey, selectedEventId, onSelectEvent }: DayEventsProps) {
   const swrKey = React.useMemo(() => dayKey ?? getCalendarDayKey(date), [date, dayKey])
   const { data: events, error, isLoading, mutate } = useSWR<DayEvent[]>(
     swrKey,
@@ -224,7 +248,13 @@ export function DayEvents({ date, dayKey }: DayEventsProps) {
         <div className="space-y-3">
           {events.map((event, index) => {
             return (
-              <DenseEventCard key={event.id ?? `${event.title}-${event.start ?? index}`} event={event} index={index} />
+              <DenseEventCard
+                key={event.id ?? `${event.title}-${event.start ?? index}`}
+                event={event}
+                index={index}
+                isSelected={Boolean(event.id && event.id === selectedEventId)}
+                onSelect={onSelectEvent ? () => onSelectEvent(event.id ?? null) : undefined}
+              />
             )
           })}
         </div>

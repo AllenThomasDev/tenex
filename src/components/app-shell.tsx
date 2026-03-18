@@ -5,6 +5,7 @@ import { differenceInCalendarDays, format, isSameDay } from "date-fns"
 
 import { AppSidebar } from "@/components/app-sidebar"
 import { DayEvents } from "@/components/day-events"
+import { EventSidebarPanel } from "@/components/event-sidebar"
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
 import { ChatPanelProvider } from "@/components/chat-provider"
 import { ChatPanel } from "@/components/chat-panel"
@@ -23,6 +24,7 @@ type AppShellProps = {
 
 export function AppShell({ user }: AppShellProps) {
   const [selectedDate, setSelectedDate] = React.useState<Date>(() => new Date())
+  const [selectedEventId, setSelectedEventId] = React.useState<string | null>(null)
   const [dateMotion, setDateMotion] = React.useState<"left" | "right">("left")
   const selectedDayKey = React.useMemo(
     () => getCalendarDayKey(selectedDate),
@@ -37,6 +39,7 @@ export function AppShell({ user }: AppShellProps) {
     }
 
     setDateMotion(nextDate > selectedDate ? "right" : "left")
+    setSelectedEventId(null)
 
     setSelectedDate(nextDate)
   }
@@ -73,8 +76,9 @@ export function AppShell({ user }: AppShellProps) {
           />
         ) : null}
         <SidebarInset id="main-content">
-          <div className="flex h-full flex-col bg-background">
-            <div className="flex-1 overflow-y-auto">
+          <div className="flex h-full flex-row bg-background">
+            {/* Main events column */}
+            <div className="flex-1 min-w-0 overflow-y-auto">
               <div className="mx-auto w-full max-w-2xl px-6 pt-8">
                 {user ? (
                   <div className="flex flex-col gap-8">
@@ -97,10 +101,24 @@ export function AppShell({ user }: AppShellProps) {
                         {format(selectedDate, "EEEE MMMM d, yyyy")}
                       </h1>
                     </div>
-                    <DayEvents date={selectedDate} dayKey={selectedDayKey} />
+                    <DayEvents
+                      date={selectedDate}
+                      dayKey={selectedDayKey}
+                      selectedEventId={selectedEventId}
+                      onSelectEvent={setSelectedEventId}
+                    />
                   </div>
                 ) : null}
               </div>
+            </div>
+            {/* Right column — same width/position as ChatPanel so it sits beneath it */}
+            <div className="hidden lg:flex lg:flex-col w-[380px] shrink-0 border-l border-border">
+              {user ? (
+                <EventSidebarPanel
+                  dayKey={selectedDayKey}
+                  selectedEventId={selectedEventId}
+                />
+              ) : null}
             </div>
           </div>
         </SidebarInset>

@@ -64,15 +64,45 @@ export async function GET(request: Request) {
     maxResults: 20,
   });
 
-  const events = (response.data.items ?? []).map((event) => ({
-    id: event.id,
-    title: event.summary?.trim() || "Untitled event",
-    start: event.start?.dateTime ?? event.start?.date,
-    end: event.end?.dateTime ?? event.end?.date,
-    isAllDay: Boolean(event.start?.date && !event.start?.dateTime),
-    location: event.location,
-    attendeesCount: event.attendees?.length ?? 0,
-  }));
+  const events = (response.data.items ?? []).map((event) => {
+    const selfAttendee = event.attendees?.find((a) => a.self);
+    const conferenceUri = event.conferenceData?.entryPoints?.find(
+      (ep) => ep.entryPointType === "video",
+    )?.uri;
+
+    return {
+      id: event.id,
+      title: event.summary?.trim() || "Untitled event",
+      start: event.start?.dateTime ?? event.start?.date,
+      end: event.end?.dateTime ?? event.end?.date,
+      isAllDay: Boolean(event.start?.date && !event.start?.dateTime),
+      location: event.location,
+      attendeesCount: event.attendees?.length ?? 0,
+      attendees: (event.attendees ?? []).map((a) => ({
+        email: a.email ?? undefined,
+        displayName: a.displayName ?? undefined,
+        responseStatus: a.responseStatus ?? undefined,
+        self: a.self ?? undefined,
+        optional: a.optional ?? undefined,
+      })),
+      status: event.status,
+      htmlLink: event.htmlLink,
+      description: event.description,
+      hangoutLink: event.hangoutLink,
+      conferenceLink: conferenceUri ?? event.hangoutLink,
+      organizer: event.organizer
+        ? {
+            email: event.organizer.email ?? undefined,
+            displayName: event.organizer.displayName ?? undefined,
+            self: event.organizer.self ?? undefined,
+          }
+        : null,
+      selfResponseStatus: selfAttendee?.responseStatus,
+      colorId: event.colorId,
+      recurringEventId: event.recurringEventId,
+      visibility: event.visibility,
+    };
+  });
 
   return Response.json({ date: dateParam, events });
 }

@@ -13,6 +13,17 @@ type DayEvent = {
   isAllDay: boolean
   location?: string
   attendeesCount: number
+  attendees?: { email?: string; displayName?: string; responseStatus?: string; self?: boolean; optional?: boolean }[]
+  status?: string
+  htmlLink?: string
+  description?: string
+  hangoutLink?: string
+  conferenceLink?: string
+  organizer?: { email?: string; displayName?: string; self?: boolean }
+  selfResponseStatus?: string
+  colorId?: string
+  recurringEventId?: string
+  visibility?: string
 }
 
 type CalendarMonthResponse = {

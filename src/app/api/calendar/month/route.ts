@@ -11,6 +11,17 @@ type DayEvent = {
   isAllDay: boolean;
   location?: string | null;
   attendeesCount: number;
+  attendees: { email?: string; displayName?: string; responseStatus?: string; self?: boolean; optional?: boolean }[];
+  status?: string | null;
+  htmlLink?: string | null;
+  description?: string | null;
+  hangoutLink?: string | null;
+  conferenceLink?: string | null;
+  organizer?: { email?: string; displayName?: string; self?: boolean } | null;
+  selfResponseStatus?: string | null;
+  colorId?: string | null;
+  recurringEventId?: string | null;
+  visibility?: string | null;
 };
 
 function addEventToDay(days: Record<string, DayEvent[]>, day: string, event: DayEvent) {
@@ -102,6 +113,11 @@ export async function GET(request: Request) {
     const start = event.start?.dateTime || event.start?.date || undefined;
     const end = event.end?.dateTime || event.end?.date || undefined;
 
+    const selfAttendee = event.attendees?.find((a) => a.self);
+    const conferenceUri = event.conferenceData?.entryPoints?.find(
+      (ep) => ep.entryPointType === "video",
+    )?.uri;
+
     const mapped: DayEvent = {
       id: event.id,
       title: event.summary?.trim() || "Untitled event",
@@ -110,6 +126,29 @@ export async function GET(request: Request) {
       isAllDay: Boolean(event.start?.date && !event.start?.dateTime),
       location: event.location,
       attendeesCount: event.attendees?.length ?? 0,
+      attendees: (event.attendees ?? []).map((a) => ({
+        email: a.email ?? undefined,
+        displayName: a.displayName ?? undefined,
+        responseStatus: a.responseStatus ?? undefined,
+        self: a.self ?? undefined,
+        optional: a.optional ?? undefined,
+      })),
+      status: event.status,
+      htmlLink: event.htmlLink,
+      description: event.description,
+      hangoutLink: event.hangoutLink,
+      conferenceLink: conferenceUri ?? event.hangoutLink,
+      organizer: event.organizer
+        ? {
+            email: event.organizer.email ?? undefined,
+            displayName: event.organizer.displayName ?? undefined,
+            self: event.organizer.self ?? undefined,
+          }
+        : null,
+      selfResponseStatus: selfAttendee?.responseStatus,
+      colorId: event.colorId,
+      recurringEventId: event.recurringEventId,
+      visibility: event.visibility,
     };
 
     if (mapped.isAllDay) {
