@@ -19,6 +19,7 @@ import {
 
 import { cn } from "@/lib/utils"
 import { Skeleton } from "@/components/ui/skeleton"
+import { Textarea } from "@/components/ui/textarea"
 
 // ─── Shared type (mirrors DayEvent from day-events.tsx) ─────────────────────
 
@@ -98,6 +99,148 @@ function EmptyState() {
   )
 }
 
+function NotesEditor({
+  event,
+  onUpdate,
+}: {
+  event: DayEvent
+  onUpdate: (updater: (events: DayEvent[] | undefined) => DayEvent[] | undefined) => Promise<DayEvent[] | undefined>
+}) {
+  const [isEditing, setIsEditing] = React.useState(false)
+  const [draft, setDraft] = React.useState(event.description ?? "")
+  const [isSaving, setIsSaving] = React.useState(false)
+  const [error, setError] = React.useState<string | null>(null)
+  const textareaRef = React.useRef<HTMLTextAreaElement>(null)
+
+  React.useEffect(() => {
+    setDraft(event.description ?? "")
+    setIsEditing(false)
+    setIsSaving(false)
+    setError(null)
+  }, [event.id, event.description])
+
+  React.useEffect(() => {
+    if (!isEditing) return
+    textareaRef.current?.focus()
+    textareaRef.current?.setSelectionRange(draft.length, draft.length)
+  }, [draft.length, isEditing])
+
+  async function saveNotes() {
+    if (!event.id || isSaving) return
+
+    setIsSaving(true)
+    setError(null)
+
+    try {
+      const response = await fetch("/api/calendar", {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          eventId: event.id,
+          description: draft,
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error("Failed to save notes")
+      }
+
+      await onUpdate((events) => {
+        if (!events) return events
+        return events.map((existingEvent) => {
+          if (existingEvent.id !== event.id) return existingEvent
+          return {
+            ...existingEvent,
+            description: draft,
+          }
+        })
+      })
+
+      setIsEditing(false)
+    } catch (saveError) {
+      setError(saveError instanceof Error ? saveError.message : "Failed to save notes")
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  function cancelEditing() {
+    setDraft(event.description ?? "")
+    setError(null)
+    setIsEditing(false)
+  }
+
+  if (isEditing) {
+    return (
+      <div className="space-y-2">
+        <Textarea
+          ref={textareaRef}
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onKeyDown={(e) => {
+            if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
+              e.preventDefault()
+              void saveNotes()
+            }
+
+            if (e.key === "Escape") {
+              e.preventDefault()
+              cancelEditing()
+            }
+          }}
+          disabled={isSaving}
+          placeholder="Add notes for this event"
+          className="min-h-28 max-h-[40vh] resize-y rounded-md border-border bg-background px-3 py-2 text-[13px] leading-relaxed text-foreground"
+        />
+        <div className="flex items-center justify-between gap-3">
+          <p className="text-[11px] text-muted-foreground">
+            Press <kbd className="rounded border border-border bg-muted/40 px-1 py-0.5 [font-family:var(--font-geist-mono)] text-[10px]">Cmd</kbd>+<kbd className="rounded border border-border bg-muted/40 px-1 py-0.5 [font-family:var(--font-geist-mono)] text-[10px]">Enter</kbd> to save
+          </p>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={cancelEditing}
+              disabled={isSaving}
+              className="text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground transition-colors hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50 [font-family:var(--font-geist-mono)]"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={() => void saveNotes()}
+              disabled={isSaving}
+              className="inline-flex items-center justify-center rounded-md border border-border bg-foreground px-2.5 py-1.5 text-[11px] font-medium uppercase tracking-[0.18em] text-background transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50 [font-family:var(--font-geist-mono)]"
+            >
+              {isSaving ? "Saving" : "Save"}
+            </button>
+          </div>
+        </div>
+        {error ? <p className="text-[11px] text-red-400">{error}</p> : null}
+      </div>
+    )
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={() => setIsEditing(true)}
+      className="block w-full rounded-md border border-dashed border-transparent px-1 py-1 text-left transition-colors hover:border-border hover:bg-muted/20 focus-visible:border-ring focus-visible:outline-none"
+    >
+      {event.description ? (
+        <p className="max-h-[40vh] overflow-y-auto text-[13px] leading-relaxed text-foreground/80 whitespace-pre-wrap break-words">
+          {event.description}
+        </p>
+      ) : (
+        <p className="text-[12px] leading-relaxed text-muted-foreground/50">
+          Click to add notes for this event.
+        </p>
+      )}
+    </button>
+  )
+}
+
 // ─── Inspector ──────────────────────────────────────────────────────────────
 
 function InspectorRow({ label, children, className }: { label: string; children: React.ReactNode; className?: string }) {
@@ -111,7 +254,13 @@ function InspectorRow({ label, children, className }: { label: string; children:
   )
 }
 
-function Inspector({ event }: { event: DayEvent | null }) {
+function Inspector({
+  event,
+  onUpdate,
+}: {
+  event: DayEvent | null
+  onUpdate: (updater: (events: DayEvent[] | undefined) => DayEvent[] | undefined) => Promise<DayEvent[] | undefined>
+}) {
   if (!event) return <EmptyState />
 
   return (
@@ -145,7 +294,7 @@ function Inspector({ event }: { event: DayEvent | null }) {
       </div>
 
       {/* Properties */}
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex min-h-0 flex-1 flex-col">
         {event.selfResponseStatus ? (
           <InspectorRow label="RSVP">
             <RsvpBadge status={event.selfResponseStatus} />
@@ -190,8 +339,26 @@ function Inspector({ event }: { event: DayEvent | null }) {
           </InspectorRow>
         ) : null}
 
+        {event.recurringEventId ? (
+          <InspectorRow label="Series">
+            <span className="inline-flex items-center gap-1.5 text-muted-foreground">
+              <Repeat className="size-3.5" />
+              Recurring event
+            </span>
+          </InspectorRow>
+        ) : null}
+
+        {event.visibility ? (
+          <InspectorRow label="Visibility">
+            <span className="inline-flex items-center gap-1.5 text-muted-foreground">
+              {event.visibility === "private" ? <Lock className="size-3.5" /> : <Globe className="size-3.5" />}
+              {event.visibility === "private" ? "Private" : "Public"}
+            </span>
+          </InspectorRow>
+        ) : null}
+
         {event.attendees && event.attendees.length > 0 ? (
-          <div className="px-4 py-2.5 border-b border-border">
+          <div className="min-h-0 flex-1 overflow-y-auto border-b border-border px-4 py-2.5">
             <span className="block text-[10px] font-medium uppercase tracking-[0.22em] text-muted-foreground [font-family:var(--font-geist-mono)] mb-2">
               Guests ({event.attendees.length})
             </span>
@@ -217,41 +384,11 @@ function Inspector({ event }: { event: DayEvent | null }) {
           </div>
         ) : null}
 
-        {event.recurringEventId ? (
-          <InspectorRow label="Series">
-            <span className="inline-flex items-center gap-1.5 text-muted-foreground">
-              <Repeat className="size-3.5" />
-              Recurring event
-            </span>
-          </InspectorRow>
-        ) : null}
-
-        {event.visibility ? (
-          <InspectorRow label="Visibility">
-            <span className="inline-flex items-center gap-1.5 text-muted-foreground">
-              {event.visibility === "private" ? <Lock className="size-3.5" /> : <Globe className="size-3.5" />}
-              {event.visibility === "private" ? "Private" : "Public"}
-            </span>
-          </InspectorRow>
-        ) : null}
-
-        <div className="px-4 py-3 border-b border-border">
+        <div className="shrink-0 border-b border-border px-4 py-3">
           <span className="block text-[10px] font-medium uppercase tracking-[0.22em] text-muted-foreground [font-family:var(--font-geist-mono)] mb-2">
             Notes
           </span>
-          {event.description ? (
-            <p className="text-[13px] leading-relaxed text-foreground/80 whitespace-pre-wrap break-words">
-              {event.description}
-            </p>
-          ) : (
-            <p className="text-[12px] leading-relaxed text-muted-foreground/50">
-              No notes added yet. Press{" "}
-              <kbd className="inline-flex items-center gap-0.5 px-1 py-0.5 text-[10px] font-medium border border-border bg-muted/40 [font-family:var(--font-geist-mono)]">
-                <span className="text-[9px]">&#8984;</span>I
-              </kbd>
-              {" "}to ask Cal-El to add notes and much more!
-            </p>
-          )}
+          <NotesEditor event={event} onUpdate={onUpdate} />
         </div>
       </div>
     </div>
@@ -278,7 +415,7 @@ type EventSidebarPanelProps = {
 }
 
 export function EventSidebarPanel({ dayKey, selectedEventId }: EventSidebarPanelProps) {
-  const { data: events, isLoading } = useSWR<DayEvent[]>(dayKey, fetchEvents)
+  const { data: events, isLoading, mutate } = useSWR<DayEvent[]>(dayKey, fetchEvents)
 
   const selectedEvent = React.useMemo(() => {
     if (!events || !selectedEventId) return null
@@ -299,5 +436,5 @@ export function EventSidebarPanel({ dayKey, selectedEventId }: EventSidebarPanel
     )
   }
 
-  return <Inspector event={selectedEvent} />
+  return <Inspector event={selectedEvent} onUpdate={(updater) => mutate(updater, { revalidate: false })} />
 }

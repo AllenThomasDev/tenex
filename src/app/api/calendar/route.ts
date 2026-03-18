@@ -28,3 +28,30 @@ export async function GET(request: Request) {
     events: (response.data.items ?? []).map(mapEvent),
   });
 }
+
+export async function PATCH(request: Request) {
+  const result = await getCalendarClient();
+  if ("error" in result) return result.error;
+
+  const body = (await request.json()) as {
+    eventId?: string;
+    description?: string | null;
+  };
+
+  if (!body.eventId) {
+    return Response.json({ error: "eventId is required" }, { status: 400 });
+  }
+
+  const response = await result.calendar.events.patch({
+    calendarId: "primary",
+    eventId: body.eventId,
+    sendUpdates: "none",
+    requestBody: {
+      description: body.description ?? "",
+    },
+  });
+
+  return Response.json({
+    event: mapEvent(response.data),
+  });
+}

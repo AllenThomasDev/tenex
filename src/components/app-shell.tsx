@@ -13,6 +13,7 @@ import { AppNavbar } from "@/components/app-navbar"
 import { CommandMenu } from "@/components/command-menu"
 import { getCalendarDayKey } from "@/lib/calendar-day"
 import { useMonthPrefetch } from "@/hooks/use-month-prefetch"
+import { cn } from "@/lib/utils"
 
 type AppShellProps = {
   user: {
@@ -26,6 +27,9 @@ export function AppShell({ user }: AppShellProps) {
   const [selectedDate, setSelectedDate] = React.useState<Date>(() => new Date())
   const [selectedEventId, setSelectedEventId] = React.useState<string | null>(null)
   const [dateMotion, setDateMotion] = React.useState<"left" | "right">("left")
+  const [showTopFade, setShowTopFade] = React.useState(false)
+  const [showBottomFade, setShowBottomFade] = React.useState(false)
+  const mainScrollRef = React.useRef<HTMLDivElement>(null)
   const selectedDayKey = React.useMemo(
     () => getCalendarDayKey(selectedDate),
     [selectedDate]
@@ -63,6 +67,26 @@ export function AppShell({ user }: AppShellProps) {
     }
   }, [selectedDate])
 
+  React.useEffect(() => {
+    const container = mainScrollRef.current
+    if (!container) return
+
+    const updateScrollCues = () => {
+      const { scrollTop, scrollHeight, clientHeight } = container
+      setShowTopFade(scrollTop > 8)
+      setShowBottomFade(scrollTop + clientHeight < scrollHeight - 8)
+    }
+
+    updateScrollCues()
+    container.addEventListener("scroll", updateScrollCues, { passive: true })
+    window.addEventListener("resize", updateScrollCues)
+
+    return () => {
+      container.removeEventListener("scroll", updateScrollCues)
+      window.removeEventListener("resize", updateScrollCues)
+    }
+  }, [selectedDate])
+
   return (
     <ChatPanelProvider>
       <AppNavbar user={user} />
@@ -78,38 +102,60 @@ export function AppShell({ user }: AppShellProps) {
         <SidebarInset id="main-content">
           <div className="flex h-full flex-row bg-background">
             {/* Main events column */}
-            <div className="flex-1 min-w-0 overflow-y-auto">
-              <div className="w-full px-6 pt-8 pb-8">
+            <div ref={mainScrollRef} className="no-scrollbar relative flex-1 min-w-0 overflow-y-auto">
+              <div
+                aria-hidden="true"
+                className={cn(
+                  "pointer-events-none sticky top-0 z-20 -mb-5 h-5 w-full bg-gradient-to-b from-background via-background/85 to-transparent transition-opacity duration-200",
+                  showTopFade ? "opacity-100" : "opacity-0"
+                )}
+              />
+              <div className="w-full pb-8">
                 {user ? (
                   <div className="flex flex-col gap-8">
-                    <div
-                      key={selectedDate.toISOString()}
-                      className={`animate-in fade-in duration-400 ${
-                        dateMotion === "right"
-                          ? "slide-in-from-right-6"
-                          : "slide-in-from-left-6"
-                      }`}
-                    >
-                      <p
-                        className={`mb-2 text-sm font-medium tracking-normal text-muted-foreground ${
-                          dateContextLabel ? "visible" : "invisible"
+                    <div className="sticky top-0 z-10 bg-background/95 px-6 pt-8 pb-4 backdrop-blur supports-[backdrop-filter]:bg-background/80">
+                      <div
+                        key={selectedDate.toISOString()}
+                        className={`animate-in fade-in duration-400 ${
+                          dateMotion === "right"
+                            ? "slide-in-from-right-6"
+                            : "slide-in-from-left-6"
                         }`}
                       >
-                        {dateContextLabel ?? "Today"}
-                      </p>
-                      <h1 className="text-4xl font-bold tracking-tight text-foreground">
-                        {format(selectedDate, "EEEE MMMM d, yyyy")}
-                      </h1>
+                        <p
+                          className={`mb-2 text-sm font-medium tracking-normal text-muted-foreground ${
+                            dateContextLabel ? "visible" : "invisible"
+                          }`}
+                        >
+                          {dateContextLabel ?? "Today"}
+                        </p>
+                        <h1 className="text-4xl font-bold tracking-tight text-foreground">
+                          {format(selectedDate, "EEEE MMMM d, yyyy")}
+                        </h1>
+                      </div>
                     </div>
-                    <DayEvents
-                      date={selectedDate}
-                      dayKey={selectedDayKey}
-                      selectedEventId={selectedEventId}
-                      onSelectEvent={setSelectedEventId}
-                    />
+                    <div className="px-6">
+                      <DayEvents
+                        date={selectedDate}
+                        dayKey={selectedDayKey}
+                        selectedEventId={selectedEventId}
+                        onSelectEvent={(eventId) => {
+                          setSelectedEventId((currentEventId) =>
+                            currentEventId === eventId ? null : eventId
+                          )
+                        }}
+                      />
+                    </div>
                   </div>
                 ) : null}
               </div>
+              <div
+                aria-hidden="true"
+                className={cn(
+                  "pointer-events-none sticky bottom-0 z-20 -mt-8 h-8 w-full bg-gradient-to-t from-background via-background/90 to-transparent transition-opacity duration-200",
+                  showBottomFade ? "opacity-100" : "opacity-0"
+                )}
+              />
             </div>
             {/* Right column — same width/position as ChatPanel so it sits beneath it */}
             <div className="hidden lg:flex lg:flex-col w-[380px] shrink-0 border-l border-border">

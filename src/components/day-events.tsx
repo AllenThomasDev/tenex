@@ -1,8 +1,8 @@
 "use client"
 
 import * as React from "react"
-import { format, parseISO } from "date-fns"
-import { CalendarRange, MapPin, Users } from "lucide-react"
+import { format, isToday, parseISO } from "date-fns"
+import { CalendarRange, CheckCircle2, CircleDot, Clock3, MapPin, Users } from "lucide-react"
 import useSWR from "swr"
 
 import { Button } from "@/components/ui/button"
@@ -61,6 +61,31 @@ function getEventTimeLabel(event: DayEvent) {
   return event.isAllDay ? "All day" : `${formatTime(event.start)} - ${formatTime(event.end)}`
 }
 
+type EventTimingState = "past" | "current" | "upcoming" | null
+
+function getEventTimingState(event: DayEvent, now: Date, shouldCompare: boolean): EventTimingState {
+  if (!shouldCompare || event.isAllDay || !event.start || !event.end) {
+    return null
+  }
+
+  const start = parseISO(event.start)
+  const end = parseISO(event.end)
+
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
+    return null
+  }
+
+  if (now > end) {
+    return "past"
+  }
+
+  if (now >= start && now <= end) {
+    return "current"
+  }
+
+  return "upcoming"
+}
+
 function EventDetails({
   event,
   iconClassName,
@@ -108,19 +133,28 @@ function DenseEventCard({
   event,
   index,
   isSelected,
+  timingState,
   onSelect,
 }: {
   event: DayEvent
   index: number
   isSelected?: boolean
+  timingState?: EventTimingState
   onSelect?: () => void
 }) {
   const hasDetails = Boolean(event.location) || event.attendeesCount > 0
+  const timingLabel = timingState === "past" ? "Passed" : timingState === "current" ? "Now" : null
+  const surfaceClassName = cn(
+    "bg-card",
+    timingState === "current" && "bg-primary/[0.03]",
+  )
 
   return (
     <article
       className={cn(
         "group flex border border-border bg-card text-card-foreground transition-colors hover:border-primary",
+        timingState === "past" && "border-dashed opacity-50",
+        timingState === "current" && "border-primary/60 bg-primary/[0.03] shadow-[0_0_0_1px_rgba(0,0,0,0.02)]",
         isSelected && "border-primary ring-1 ring-primary/30",
         onSelect && "cursor-pointer",
       )}
@@ -134,20 +168,36 @@ function DenseEventCard({
       ) : null}
       <div className="flex-1 min-w-0">
         <div className="grid gap-px bg-border md:grid-cols-[auto_minmax(0,1fr)_auto]">
-          <div className="bg-card px-3 py-2.5">
-            <div className="flex min-h-10 items-center text-[11px] font-medium uppercase tracking-[0.22em] text-muted-foreground [font-family:var(--font-geist-mono)]">
+          <div className={cn(surfaceClassName, "px-3 py-2.5")}>
+            <div className={cn(
+              "flex min-h-10 items-center text-[11px] font-medium uppercase tracking-[0.22em] text-muted-foreground [font-family:var(--font-geist-mono)]",
+              timingState === "current" && "text-primary",
+            )}>
               {getEventTimeLabel(event)}
             </div>
           </div>
-          <div className="bg-card px-3 py-2.5">
-            <div className="flex min-h-10 items-center">
-              <h3 className="break-words text-base font-semibold tracking-[-0.03em] text-balance">
+          <div className={cn(surfaceClassName, "px-3 py-2.5")}>
+            <div className="flex min-h-10 items-center justify-between gap-3">
+              <h3 className={cn(
+                "break-words text-base font-semibold tracking-[-0.03em] text-balance",
+              )}>
                 {event.title}
               </h3>
+              {timingLabel ? (
+                <span className={cn(
+                  "shrink-0 text-[10px] font-medium uppercase tracking-[0.22em] [font-family:var(--font-geist-mono)]",
+                  timingState === "current" && "text-primary",
+                )}>
+                  {timingLabel}
+                </span>
+              ) : null}
             </div>
           </div>
-          <div className="bg-card px-3 py-2.5">
-            <div className="flex min-h-10 items-center justify-end text-[11px] font-medium uppercase tracking-[0.22em] text-muted-foreground [font-family:var(--font-geist-mono)] md:text-right">
+          <div className={cn(surfaceClassName, "px-3 py-2.5")}>
+            <div className={cn(
+              "flex min-h-10 items-center justify-end text-[11px] font-medium uppercase tracking-[0.22em] text-muted-foreground [font-family:var(--font-geist-mono)] md:text-right",
+              timingState === "current" && "text-primary/80",
+            )}>
               #{String(index + 1).padStart(2, "0")}
             </div>
           </div>
@@ -157,7 +207,10 @@ function DenseEventCard({
           <div className="border-t border-border px-3 py-2.5">
             <EventDetails
               event={event}
-              iconClassName="text-muted-foreground"
+              iconClassName={cn(
+                "text-muted-foreground",
+                timingState === "current" && "text-primary/80",
+              )}
               textClassName="text-muted-foreground"
               compact
             />
@@ -208,6 +261,74 @@ export function DayEvents({ date, dayKey, selectedEventId, onSelectEvent }: DayE
     fetchEvents,
   )
   const showSkeleton = !events && isLoading
+  const [now, setNow] = React.useState(() => new Date())
+  const isViewingToday = isToday(date)
+  const orderedEvents = React.useMemo(() => {
+    if (!events) return events
+    if (!isViewingToday) return events
+
+    const upcomingOrCurrent: DayEvent[] = []
+    const past: DayEvent[] = []
+
+    for (const event of events) {
+      const timingState = getEventTimingState(event, now, true)
+
+      if (timingState === "past") {
+        past.push(event)
+      } else {
+        upcomingOrCurrent.push(event)
+      }
+    }
+
+    return [...upcomingOrCurrent, ...past]
+  }, [events, isViewingToday, now])
+  const eventSummary = React.useMemo(() => {
+    if (!events?.length) {
+      return {
+        total: 0,
+        past: 0,
+        current: 0,
+        upcoming: 0,
+      }
+    }
+
+    let pastCount = 0
+    let currentCount = 0
+    let upcomingCount = 0
+
+    for (const event of events) {
+      const timingState = getEventTimingState(event, now, isViewingToday)
+
+      if (timingState === "past") {
+        pastCount += 1
+      } else if (timingState === "current") {
+        currentCount += 1
+      } else {
+        upcomingCount += 1
+      }
+    }
+
+    return {
+      total: events.length,
+      past: pastCount,
+      current: currentCount,
+      upcoming: upcomingCount,
+    }
+  }, [events, isViewingToday, now])
+
+  React.useEffect(() => {
+    if (!isViewingToday) return
+
+    const intervalId = window.setInterval(() => {
+      setNow(new Date())
+    }, 60_000)
+
+    setNow(new Date())
+
+    return () => {
+      window.clearInterval(intervalId)
+    }
+  }, [isViewingToday, date])
 
   return (
     <section aria-labelledby="events-heading" className="space-y-4">
@@ -217,9 +338,43 @@ export function DayEvents({ date, dayKey, selectedEventId, onSelectEvent }: DayE
             Events
           </h2>
         </div>
-        <p aria-live="polite" className="text-sm text-muted-foreground">
-          {showSkeleton ? "" : `${events?.length ?? 0} planned`}
-        </p>
+        <div aria-live="polite" className="flex flex-wrap items-center gap-2 text-[11px] font-medium uppercase tracking-[0.18em] [font-family:var(--font-geist-mono)]">
+          {isViewingToday ? (
+            <>
+              <span
+                className="rounded-full bg-muted px-2.5 py-1 text-muted-foreground"
+                aria-label={`${eventSummary.past} done`}
+                title={`${eventSummary.past} done`}
+              >
+                <CheckCircle2 className="mr-1 inline size-3" />
+                <span className="mr-1 text-foreground/90">{eventSummary.past}</span>
+                <span>Done</span>
+              </span>
+              <span
+                className="rounded-full bg-primary/10 px-2.5 py-1 text-primary"
+                aria-label={`${eventSummary.current} now`}
+                title={`${eventSummary.current} now`}
+              >
+                <CircleDot className="mr-1 inline size-3" />
+                <span className="mr-1">{eventSummary.current}</span>
+                <span>Now</span>
+              </span>
+              <span
+                className="rounded-full bg-secondary px-2.5 py-1 text-secondary-foreground"
+                aria-label={`${eventSummary.upcoming} upcoming`}
+                title={`${eventSummary.upcoming} upcoming`}
+              >
+                <Clock3 className="mr-1 inline size-3" />
+                <span className="mr-1">{eventSummary.upcoming}</span>
+                <span>Next</span>
+              </span>
+            </>
+          ) : (
+            <span className="text-sm normal-case tracking-normal text-muted-foreground [font-family:var(--font-sans)]">
+              {showSkeleton ? "" : `${eventSummary.total} planned`}
+            </span>
+          )}
+        </div>
       </div>
 
       {showSkeleton ? <DayEventsSkeleton /> : null}
@@ -252,15 +407,16 @@ export function DayEvents({ date, dayKey, selectedEventId, onSelectEvent }: DayE
         </div>
       ) : null}
 
-      {!showSkeleton && !error && events && events.length > 0 ? (
+      {!showSkeleton && !error && orderedEvents && orderedEvents.length > 0 ? (
         <div className="space-y-3">
-          {events.map((event, index) => {
+          {orderedEvents.map((event, index) => {
             return (
               <DenseEventCard
                 key={event.id ?? `${event.title}-${event.start ?? index}`}
                 event={event}
                 index={index}
                 isSelected={Boolean(event.id && event.id === selectedEventId)}
+                timingState={getEventTimingState(event, now, isViewingToday)}
                 onSelect={onSelectEvent ? () => onSelectEvent(event.id ?? null) : undefined}
               />
             )
