@@ -6,6 +6,9 @@ import { useSWRConfig } from "swr";
 
 import { ArrowUp } from "lucide-react";
 import { useChatPanel } from "@/components/chat-provider";
+import { ChatEventList } from "@/components/chat-event-list";
+import { ChatFreeBusy } from "@/components/chat-freebusy";
+import { ChatEmailDraft } from "@/components/chat-email-draft";
 import { assistant } from "@/lib/assistant";
 
 type ChatProps = {
@@ -133,6 +136,36 @@ export function Chat({ dayKey }: ChatProps) {
                 return (
                   <p key={i} className="whitespace-pre-wrap break-words">
                     {part.text}
+                  </p>
+                );
+              }
+              if (part.type === "tool-displayEvents") {
+                if (part.state === "output-available" && Array.isArray(part.output)) {
+                  return <ChatEventList key={i} events={part.output} />;
+                }
+                return (
+                  <p key={i} className="text-sm italic text-muted-foreground">
+                    Loading your events…
+                  </p>
+                );
+              }
+              if (part.type === "tool-displayFreeBusy") {
+                if (part.state === "output-available" && part.output) {
+                  return <ChatFreeBusy key={i} data={part.output as any} />;
+                }
+                return (
+                  <p key={i} className="text-sm italic text-muted-foreground">
+                    Checking availability…
+                  </p>
+                );
+              }
+              if (part.type === "tool-displayEmailDraft") {
+                if (part.state === "output-available" && part.output) {
+                  return <ChatEmailDraft key={i} draft={part.output as any} />;
+                }
+                return (
+                  <p key={i} className="text-sm italic text-muted-foreground">
+                    Drafting email…
                   </p>
                 );
               }

@@ -32,7 +32,12 @@ export default function RootLayout({
       suppressHydrationWarning
     >
       <body className="antialiased">
-        <ThemeProvider attribute="class" defaultTheme="dark" disableTransitionOnChange>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="dark"
+          themes={["light", "dark", "catppuccin", "dark-catppuccin", "yellow", "dark-yellow"]}
+          disableTransitionOnChange
+        >
           <a
             href="#main-content"
             className="sr-only z-50 rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground focus:not-sr-only focus:absolute focus:top-4 focus:left-4"

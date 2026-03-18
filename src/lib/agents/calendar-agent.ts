@@ -10,7 +10,9 @@ import { createUpdateEventTool } from "../tools/update-event";
 import { createDeleteEventTool } from "../tools/delete-event";
 import { createRespondToEventTool } from "../tools/respond-to-event";
 import { createGetFreeBusyTool } from "../tools/get-freebusy";
-import { createGetCurrentTimeTool } from "../tools/get-current-time";
+import { createDisplayEventsTool } from "../tools/display-events";
+import { createDisplayFreeBusyTool } from "../tools/display-freebusy";
+import { createDisplayEmailDraftTool } from "../tools/display-email-draft";
 import { createListColorsTool } from "../tools/list-colors";
 
 const primeIntellect = createOpenAICompatible({
@@ -21,18 +23,29 @@ const primeIntellect = createOpenAICompatible({
 
 export const calendarAgent = new ToolLoopAgent({
   model: primeIntellect("openai/gpt-5.4"),
-  instructions: `You are a helpful calendar assistant. You help users understand and manage their Google Calendar.
+  callOptionsSchema: z.object({
+    accessToken: z.string(),
+    timezone: z.string(),
+  }),
+  prepareCall: ({ options, ...settings }) => ({
+    ...settings,
+    instructions: `You are a helpful calendar assistant. You help users understand and manage their Google Calendar.
 
-When asked about events, use the appropriate tools to fetch, search, create, update, or delete them. Always call getCurrentTime first if you need to know today's date.
+Current time: ${new Date().toLocaleString("en-US", { timeZone: options.timezone, dateStyle: "full", timeStyle: "long" })}
+Timezone: ${options.timezone}
+
+When asked about events, use the appropriate tools to fetch, search, create, update, or delete them.
+
+You have display tools that render rich UI components. When you use a display tool, do NOT add any text summary — the UI component handles the display. Just call the tool and stop.
+- listEvents: use for internal reasoning (e.g. checking availability, counting meetings, analyzing schedule)
+- displayEvents: use when the user explicitly asks to SEE or SHOW their events — renders a visual event list
+- getFreeBusy: use for internal reasoning about availability
+- displayFreeBusy: use when the user asks to SEE their availability or free/busy time — renders a visual timeline
+- displayEmailDraft: use when the user asks you to draft, write, or compose an email — renders a styled email preview with an "Open in Gmail" button
 
 Summarize results in a clear, conversational way. Include dates, times, and relevant details like location or attendees.
 
 When creating or modifying events, confirm the details with the user before proceeding if anything is ambiguous.`,
-  callOptionsSchema: z.object({
-    accessToken: z.string(),
-  }),
-  prepareCall: ({ options, ...settings }) => ({
-    ...settings,
     tools: {
       listCalendars: createListCalendarsTool(options.accessToken),
       listEvents: createListEventsTool(options.accessToken),
@@ -43,7 +56,9 @@ When creating or modifying events, confirm the details with the user before proc
       deleteEvent: createDeleteEventTool(options.accessToken),
       respondToEvent: createRespondToEventTool(options.accessToken),
       getFreeBusy: createGetFreeBusyTool(options.accessToken),
-      getCurrentTime: createGetCurrentTimeTool(options.accessToken),
+      displayEvents: createDisplayEventsTool(options.accessToken),
+      displayFreeBusy: createDisplayFreeBusyTool(options.accessToken),
+      displayEmailDraft: createDisplayEmailDraftTool(),
       listColors: createListColorsTool(options.accessToken),
     },
   }),

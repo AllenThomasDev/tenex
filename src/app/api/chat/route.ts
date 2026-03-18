@@ -28,13 +28,14 @@ export async function POST(req: Request) {
     );
   }
 
-  const { messages } = await req.json();
+  const { messages, timezone } = await req.json();
 
   return createAgentUIStreamResponse({
     agent: calendarAgent,
     uiMessages: messages,
     options: {
       accessToken,
+      timezone: timezone ?? "America/Chicago",
     },
   });
 }

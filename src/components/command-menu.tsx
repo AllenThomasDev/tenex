@@ -28,11 +28,30 @@ import {
   CommandShortcut,
 } from "@/components/ui/command"
 import { useChatPanel } from "@/components/chat-provider"
-import { useColorTheme, colorThemes } from "@/hooks/use-color-theme"
 import { authClient } from "@/auth-client"
 
 const isMac = typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigator.platform)
 const mod = isMac ? "⌘" : "Ctrl+"
+
+const colorThemes = [
+  { id: "default",    label: "Default",    color: "oklch(0.205 0 0)" },
+  { id: "catppuccin", label: "Catppuccin", color: "oklch(0.5547 0.2503 297.0156)" },
+  { id: "yellow",     label: "Yellow",     color: "oklch(0.852 0.199 91.936)" },
+] as const
+
+type ColorThemeId = (typeof colorThemes)[number]["id"]
+
+function parseTheme(theme: string | undefined) {
+  if (!theme) return { isDark: true, colorTheme: "default" as ColorThemeId }
+  const isDark = theme === "dark" || theme.startsWith("dark-")
+  const colorTheme = theme.replace(/^(dark|light)-?/, "") || "default"
+  return { isDark, colorTheme: colorTheme as ColorThemeId }
+}
+
+function buildTheme(isDark: boolean, colorTheme: ColorThemeId) {
+  if (colorTheme === "default") return isDark ? "dark" : "light"
+  return isDark ? `dark-${colorTheme}` : colorTheme
+}
 
 type Page = "root" | "theme"
 
@@ -96,9 +115,8 @@ function CommandMenuContent({
 }: CommandMenuContentProps) {
   const [page, setPage] = useState<Page>("root")
   const [search, setSearch] = useState("")
-  const { resolvedTheme, setTheme: setMode } = useTheme()
-  const { theme: colorTheme, applyTheme } = useColorTheme()
-  const isDark = resolvedTheme === "dark"
+  const { theme, setTheme } = useTheme()
+  const { isDark, colorTheme } = parseTheme(theme)
 
   function handleKeyDown(e: React.KeyboardEvent) {
     if (e.key === "Backspace" && !search && page !== "root") {
@@ -147,7 +165,7 @@ function CommandMenuContent({
             <CommandSeparator />
 
             <CommandGroup heading="Settings">
-              <CommandItem onSelect={() => onRun(() => setMode(isDark ? "light" : "dark"))}>
+              <CommandItem onSelect={() => onRun(() => setTheme(buildTheme(!isDark, colorTheme)))}>
                 {isDark ? <Sun /> : <Moon />}
                 {isDark ? "Switch to Light Mode" : "Switch to Dark Mode"}
               </CommandItem>
@@ -174,7 +192,7 @@ function CommandMenuContent({
         ) : (
           <CommandGroup heading="Theme">
             {colorThemes.map((t) => (
-              <CommandItem key={t.id} onSelect={() => onRun(() => applyTheme(t.id))}>
+              <CommandItem key={t.id} onSelect={() => onRun(() => setTheme(buildTheme(isDark, t.id)))}>
                 <span
                   className="size-3.5 rounded-full border border-border/50 shrink-0"
                   style={{ background: t.color }}

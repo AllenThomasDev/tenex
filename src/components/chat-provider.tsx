@@ -1,11 +1,13 @@
 "use client"
 
 import { useChat } from "@ai-sdk/react"
+import { DefaultChatTransport } from "ai"
 import {
   createContext,
   useCallback,
   useContext,
   useEffect,
+  useMemo,
   useRef,
   useState,
   type ReactNode,
@@ -32,7 +34,17 @@ export function useChatPanel() {
 }
 
 export function ChatPanelProvider({ children }: { children: ReactNode }) {
-  const chat = useChat()
+  const transport = useMemo(
+    () =>
+      new DefaultChatTransport({
+        api: "/api/chat",
+        body: {
+          timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+        },
+      }),
+    [],
+  )
+  const chat = useChat({ transport })
   const [state, setState] = useState<ChatPanelState>({ isOpen: false })
   const isOpenRef = useRef(false)
 
