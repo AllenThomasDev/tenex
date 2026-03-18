@@ -31,8 +31,7 @@ type DayEvent = {
   visibility?: string
 }
 
-type CalendarDayResponse = {
-  date: string
+type CalendarResponse = {
   events: DayEvent[]
 }
 
@@ -54,7 +53,7 @@ function formatTime(dateString?: string) {
     return "Time unavailable"
   }
 
-  return format(date, "p")
+  return format(date, "hh:mma").toLowerCase()
 }
 
 function getEventTimeLabel(event: DayEvent) {
@@ -188,7 +187,7 @@ async function fetchEvents(url: string): Promise<DayEvent[]> {
     throw new Error(data?.error ?? "Could not load calendar events.")
   }
 
-  const data = (await response.json()) as CalendarDayResponse
+  const data = (await response.json()) as CalendarResponse
 
   return data.events
 }

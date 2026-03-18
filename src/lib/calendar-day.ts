@@ -1,3 +1,5 @@
+import { TZDate } from "@date-fns/tz"
+import { addDays } from "date-fns"
 import { getUserTimeZone } from "@/lib/calendar-timezone"
 
 export function toCalendarDayId(date: Date) {
@@ -8,11 +10,16 @@ export function toCalendarDayId(date: Date) {
   return `${year}-${month}-${day}`
 }
 
-export function getCalendarDayKey(date: Date) {
-  const searchParams = new URLSearchParams({
-    date: toCalendarDayId(date),
-    timeZone: getUserTimeZone(),
-  })
+export function getDayBounds(date: Date) {
+  const tz = getUserTimeZone()
+  const [y, m, d] = toCalendarDayId(date).split("-").map(Number)
+  const start = new TZDate(y, m - 1, d, tz)
+  const end = addDays(start, 1)
+  return { timeMin: start.toISOString(), timeMax: end.toISOString() }
+}
 
+export function getCalendarDayKey(date: Date) {
+  const { timeMin, timeMax } = getDayBounds(date)
+  const searchParams = new URLSearchParams({ timeMin, timeMax })
   return `/api/calendar?${searchParams.toString()}`
 }
