@@ -1,6 +1,7 @@
 import { tool } from "ai";
 import { z } from "zod";
 import { createCalendarClient } from "./google-calendar";
+import { parseTimeInput } from "./parse-time-input";
 
 export function createCreateEventTool(accessToken: string) {
   return tool({
@@ -13,19 +14,15 @@ export function createCreateEventTool(accessToken: string) {
       summary: z.string().describe("Title of the event"),
       description: z.string().optional().describe("Description/notes for the event"),
       start: z
-        .object({
-          dateTime: z.string().optional().describe("ISO 8601 datetime for timed events"),
-          date: z.string().optional().describe("YYYY-MM-DD for all-day events"),
-          timeZone: z.string().optional().describe("IANA timezone (e.g., 'America/Los_Angeles')"),
-        })
-        .describe("Event start time. Provide either dateTime or date, not both."),
+        .string()
+        .describe(
+          "Event start time. Use ISO 8601: '2025-03-18T16:50:00-05:00' for timed events, '2025-03-18' for all-day events."
+        ),
       end: z
-        .object({
-          dateTime: z.string().optional().describe("ISO 8601 datetime for timed events"),
-          date: z.string().optional().describe("YYYY-MM-DD for all-day events"),
-          timeZone: z.string().optional().describe("IANA timezone (e.g., 'America/Los_Angeles')"),
-        })
-        .describe("Event end time. Provide either dateTime or date, not both."),
+        .string()
+        .describe(
+          "Event end time. Use ISO 8601: '2025-03-18T17:00:00-05:00' for timed events, '2025-03-19' for all-day (exclusive)."
+        ),
       location: z.string().optional().describe("Location of the event"),
       attendees: z
         .array(
@@ -89,34 +86,48 @@ export function createCreateEventTool(accessToken: string) {
     }) => {
       const calendar = createCalendarClient(accessToken);
 
-      const response = await calendar.events.insert({
-        calendarId,
-        sendUpdates,
-        conferenceDataVersion: 1,
-        requestBody: {
-          summary,
-          description,
-          start,
-          end,
-          location,
-          attendees,
-          recurrence,
-          reminders,
-          colorId,
-          visibility,
-          transparency,
-        },
-      });
+      try {
+        const response = await calendar.events.insert({
+          calendarId,
+          sendUpdates,
+          conferenceDataVersion: 1,
+          requestBody: {
+            summary,
+            description,
+            start: parseTimeInput(start),
+            end: parseTimeInput(end),
+            location,
+            attendees,
+            recurrence,
+            reminders,
+            colorId,
+            visibility,
+            transparency,
+          },
+        });
 
-      return {
-        id: response.data.id,
-        summary: response.data.summary,
-        start:
-          response.data.start?.dateTime ?? response.data.start?.date,
-        end: response.data.end?.dateTime ?? response.data.end?.date,
-        htmlLink: response.data.htmlLink,
-        status: response.data.status,
-      };
+        return {
+          id: response.data.id,
+          summary: response.data.summary,
+          start:
+            response.data.start?.dateTime ?? response.data.start?.date,
+          end: response.data.end?.dateTime ?? response.data.end?.date,
+          htmlLink: response.data.htmlLink,
+          status: response.data.status,
+        };
+      } catch (error: unknown) {
+        const message =
+          error instanceof Error ? error.message : "Unknown error";
+        const details =
+          error &&
+          typeof error === "object" &&
+          "response" in error &&
+          (error as any).response?.data?.error?.message;
+        throw new Error(
+          `Failed to create event: ${details || message}. ` +
+            `Received start: ${JSON.stringify(start)}, end: ${JSON.stringify(end)}`
+        );
+      }
     },
   });
 }

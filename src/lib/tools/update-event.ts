@@ -1,6 +1,7 @@
 import { tool } from "ai";
 import { z } from "zod";
 import { createCalendarClient } from "./google-calendar";
+import { parseTimeInput } from "./parse-time-input";
 
 export function createUpdateEventTool(accessToken: string) {
   return tool({
@@ -15,23 +16,17 @@ export function createUpdateEventTool(accessToken: string) {
       summary: z.string().nullable().optional().describe("Updated title of the event"),
       description: z.string().nullable().optional().describe("Updated description/notes"),
       start: z
-        .object({
-          dateTime: z.string().optional().describe("ISO 8601 datetime for timed events"),
-          date: z.string().optional().describe("YYYY-MM-DD for all-day events"),
-          timeZone: z.string().optional().describe("IANA timezone (e.g., 'America/Los_Angeles')"),
-        })
-        .nullable()
+        .string()
         .optional()
-        .describe("Updated start time. Provide either dateTime or date, not both."),
+        .describe(
+          "Updated start time. Use ISO 8601: '2025-03-18T16:50:00-05:00' for timed events, '2025-03-18' for all-day events."
+        ),
       end: z
-        .object({
-          dateTime: z.string().optional().describe("ISO 8601 datetime for timed events"),
-          date: z.string().optional().describe("YYYY-MM-DD for all-day events"),
-          timeZone: z.string().optional().describe("IANA timezone (e.g., 'America/Los_Angeles')"),
-        })
-        .nullable()
+        .string()
         .optional()
-        .describe("Updated end time. Provide either dateTime or date, not both."),
+        .describe(
+          "Updated end time. Use ISO 8601: '2025-03-18T17:00:00-05:00' for timed events, '2025-03-19' for all-day (exclusive)."
+        ),
       location: z.string().nullable().optional().describe("Updated location"),
       attendees: z
         .array(
@@ -106,24 +101,37 @@ export function createUpdateEventTool(accessToken: string) {
       if (recurrence != null) requestBody.recurrence = recurrence;
       if (visibility != null) requestBody.visibility = visibility;
       if (transparency != null) requestBody.transparency = transparency;
-      if (start != null) requestBody.start = start;
-      if (end != null) requestBody.end = end;
+      if (start != null) requestBody.start = parseTimeInput(start);
+      if (end != null) requestBody.end = parseTimeInput(end);
 
-      const response = await calendar.events.patch({
-        calendarId,
-        eventId,
-        sendUpdates,
-        requestBody,
-      });
+      try {
+        const response = await calendar.events.patch({
+          calendarId,
+          eventId,
+          sendUpdates,
+          requestBody,
+        });
 
-      return {
-        id: response.data.id,
-        summary: response.data.summary,
-        start: response.data.start?.dateTime ?? response.data.start?.date,
-        end: response.data.end?.dateTime ?? response.data.end?.date,
-        htmlLink: response.data.htmlLink,
-        status: response.data.status,
-      };
+        return {
+          id: response.data.id,
+          summary: response.data.summary,
+          start: response.data.start?.dateTime ?? response.data.start?.date,
+          end: response.data.end?.dateTime ?? response.data.end?.date,
+          htmlLink: response.data.htmlLink,
+          status: response.data.status,
+        };
+      } catch (error: unknown) {
+        const message =
+          error instanceof Error ? error.message : "Unknown error";
+        const details =
+          error &&
+          typeof error === "object" &&
+          "response" in error &&
+          (error as any).response?.data?.error?.message;
+        throw new Error(
+          `Failed to update event: ${details || message}.`
+        );
+      }
     },
   });
 }
