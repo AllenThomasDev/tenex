@@ -13,17 +13,17 @@ export async function GET(request: Request) {
     return Response.json({ error: "Not authenticated" }, { status: 401 });
   }
 
-  const account = await auth.api
-    .getAccessToken({
+  let accessToken: string;
+  try {
+    const account = await auth.api.getAccessToken({
       headers: requestHeaders,
       body: {
         providerId: "google",
         userId: session.user.id,
       },
-    })
-    .catch(() => null);
-
-  if (!account?.accessToken) {
+    });
+    accessToken = account.accessToken;
+  } catch {
     return Response.json(
       { error: "No Google access token available" },
       { status: 401 },
@@ -31,7 +31,7 @@ export async function GET(request: Request) {
   }
 
   const oauth2Client = new google.auth.OAuth2();
-  oauth2Client.setCredentials({ access_token: account.accessToken });
+  oauth2Client.setCredentials({ access_token: accessToken });
 
   const calendar = google.calendar({ version: "v3", auth: oauth2Client });
 

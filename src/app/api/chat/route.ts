@@ -11,17 +11,17 @@ export async function POST(req: Request) {
     return Response.json({ error: "Not authenticated" }, { status: 401 });
   }
 
-  const account = await auth.api
-    .getAccessToken({
+  let accessToken: string;
+  try {
+    const account = await auth.api.getAccessToken({
       headers: requestHeaders,
       body: {
         providerId: "google",
         userId: session.user.id,
       },
-    })
-    .catch(() => null);
-
-  if (!account?.accessToken) {
+    });
+    accessToken = account.accessToken;
+  } catch {
     return Response.json(
       { error: "No Google access token available" },
       { status: 401 },
@@ -34,7 +34,7 @@ export async function POST(req: Request) {
     agent: calendarAgent,
     uiMessages: messages,
     options: {
-      accessToken: account.accessToken,
+      accessToken,
     },
   });
 }

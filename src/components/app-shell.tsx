@@ -79,7 +79,7 @@ export function AppShell({ user }: AppShellProps) {
           <div className="flex h-full flex-row bg-background">
             {/* Main events column */}
             <div className="flex-1 min-w-0 overflow-y-auto">
-              <div className="mx-auto w-full max-w-2xl px-6 pt-8">
+              <div className="w-full px-6 pt-8">
                 {user ? (
                   <div className="flex flex-col gap-8">
                     <div
