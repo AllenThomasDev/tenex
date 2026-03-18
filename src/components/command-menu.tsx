@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 import { addDays, subDays } from "date-fns"
 import {
@@ -10,6 +10,9 @@ import {
   MessageCircle,
   Palette,
   LogOut,
+  ChevronRight,
+  Sun,
+  Moon,
 } from "lucide-react"
 
 import {
@@ -38,6 +41,7 @@ const themes = [
 type ThemeId = (typeof themes)[number]["id"]
 
 const THEME_KEY = "color-theme"
+const MODE_KEY = "color-mode"
 
 function applyTheme(id: ThemeId) {
   if (id === "default") {
@@ -48,14 +52,33 @@ function applyTheme(id: ThemeId) {
   localStorage.setItem(THEME_KEY, id)
 }
 
+type Page = "root" | "theme"
+
 type CommandMenuProps = {
   onSelectDate: (date: Date) => void
 }
 
 export function CommandMenu({ onSelectDate }: CommandMenuProps) {
   const [open, setOpen] = useState(false)
+  const [page, setPage] = useState<Page>("root")
+  const [search, setSearch] = useState("")
+  const [isDark, setIsDark] = useState(true)
   const { toggleChat } = useChatPanel()
   const router = useRouter()
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    const saved = localStorage.getItem(MODE_KEY)
+    const dark = saved ? saved === "dark" : document.documentElement.classList.contains("dark")
+    setIsDark(dark)
+  }, [])
+
+  function setMode(dark: boolean) {
+    document.documentElement.classList.toggle("dark", dark)
+    document.documentElement.style.colorScheme = dark ? "dark" : "light"
+    localStorage.setItem(MODE_KEY, dark ? "dark" : "light")
+    setIsDark(dark)
+  }
 
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
@@ -68,71 +91,109 @@ export function CommandMenu({ onSelectDate }: CommandMenuProps) {
     return () => document.removeEventListener("keydown", onKeyDown)
   }, [])
 
+  // Reset to root page when closed
+  useEffect(() => {
+    if (!open) {
+      setPage("root")
+      setSearch("")
+    }
+  }, [open])
+
   function run(action: () => void) {
     setOpen(false)
     action()
   }
 
+  function handleKeyDown(e: React.KeyboardEvent) {
+    // Backspace with empty input goes back to root
+    if (e.key === "Backspace" && !search && page !== "root") {
+      e.preventDefault()
+      setPage("root")
+    }
+  }
+
   return (
     <CommandDialog open={open} onOpenChange={setOpen} title="Command Menu">
-      <Command>
-      <CommandInput placeholder="Type a command…" />
-      <CommandList>
-        <CommandEmpty>No results found.</CommandEmpty>
+      <Command onKeyDown={handleKeyDown}>
+        <CommandInput
+          ref={inputRef}
+          placeholder={page === "theme" ? "Search themes…" : "Type a command…"}
+          value={search}
+          onValueChange={setSearch}
+        />
+        <CommandList>
+          <CommandEmpty>No results found.</CommandEmpty>
 
-        <CommandGroup heading="Navigate">
-          <CommandItem onSelect={() => run(() => onSelectDate(new Date()))}>
-            <CalendarCheck />
-            Go to Today
-            <CommandShortcut>T</CommandShortcut>
-          </CommandItem>
-          <CommandItem onSelect={() => run(() => onSelectDate(addDays(new Date(), 1)))}>
-            <CalendarDays />
-            Go to Tomorrow
-          </CommandItem>
-          <CommandItem onSelect={() => run(() => onSelectDate(subDays(new Date(), 1)))}>
-            <CalendarMinus />
-            Go to Yesterday
-          </CommandItem>
-        </CommandGroup>
+          {page === "root" && (
+            <>
+              <CommandGroup heading="Navigate">
+                <CommandItem onSelect={() => run(() => onSelectDate(new Date()))}>
+                  <CalendarCheck />
+                  Go to Today
+                </CommandItem>
+                <CommandItem onSelect={() => run(() => onSelectDate(addDays(new Date(), 1)))}>
+                  <CalendarDays />
+                  Go to Tomorrow
+                </CommandItem>
+                <CommandItem onSelect={() => run(() => onSelectDate(subDays(new Date(), 1)))}>
+                  <CalendarMinus />
+                  Go to Yesterday
+                </CommandItem>
+              </CommandGroup>
 
-        <CommandSeparator />
+              <CommandSeparator />
 
-        <CommandGroup heading="Assistant">
-          <CommandItem onSelect={() => run(toggleChat)}>
-            <MessageCircle />
-            Toggle Assistant
-            <CommandShortcut>{mod}I</CommandShortcut>
-          </CommandItem>
-        </CommandGroup>
+              <CommandGroup heading="Assistant">
+                <CommandItem onSelect={() => run(toggleChat)}>
+                  <MessageCircle />
+                  Toggle Assistant
+                  <CommandShortcut>{mod}I</CommandShortcut>
+                </CommandItem>
+              </CommandGroup>
 
-        <CommandSeparator />
+              <CommandSeparator />
 
-        <CommandGroup heading="Theme">
-          {themes.map((t) => (
-            <CommandItem key={t.id} onSelect={() => run(() => applyTheme(t.id))}>
-              <span
-                className="size-3.5 rounded-full border border-border/50 shrink-0"
-                style={{ background: t.color }}
-              />
-              {t.label}
-            </CommandItem>
-          ))}
-        </CommandGroup>
+              <CommandGroup heading="Settings">
+                <CommandItem onSelect={() => run(() => setMode(!isDark))}>
+                  {isDark ? <Sun /> : <Moon />}
+                  {isDark ? "Switch to Light Mode" : "Switch to Dark Mode"}
+                </CommandItem>
+                <CommandItem onSelect={() => { setPage("theme"); setSearch("") }}>
+                  <Palette />
+                  Change Theme
+                  <CommandShortcut><ChevronRight className="size-3.5" /></CommandShortcut>
+                </CommandItem>
+              </CommandGroup>
 
-        <CommandSeparator />
+              <CommandSeparator />
 
-        <CommandGroup heading="Account">
-          <CommandItem
-            onSelect={() => run(() =>
-              authClient.signOut({ fetchOptions: { onSuccess: () => router.push("/") } })
-            )}
-          >
-            <LogOut />
-            Sign Out
-          </CommandItem>
-        </CommandGroup>
-      </CommandList>
+              <CommandGroup heading="Account">
+                <CommandItem
+                  onSelect={() => run(() =>
+                    authClient.signOut({ fetchOptions: { onSuccess: () => router.push("/") } })
+                  )}
+                >
+                  <LogOut />
+                  Sign Out
+                </CommandItem>
+              </CommandGroup>
+            </>
+          )}
+
+          {page === "theme" && (
+            <CommandGroup heading="Theme">
+              {themes.map((t) => (
+                <CommandItem key={t.id} onSelect={() => run(() => applyTheme(t.id))}>
+                  <span
+                    className="size-3.5 rounded-full border border-border/50 shrink-0"
+                    style={{ background: t.color }}
+                  />
+                  {t.label}
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          )}
+        </CommandList>
       </Command>
     </CommandDialog>
   )
