@@ -13,19 +13,19 @@ export function createCreateEventTool(accessToken: string) {
       summary: z.string().describe("Title of the event"),
       description: z.string().optional().describe("Description/notes for the event"),
       start: z
-        .string()
-        .describe(
-          "Event start time. ISO 8601 format: '2025-01-01T10:00:00' for timed events or '2025-01-01' for all-day events",
-        ),
+        .object({
+          dateTime: z.string().optional().describe("ISO 8601 datetime for timed events"),
+          date: z.string().optional().describe("YYYY-MM-DD for all-day events"),
+          timeZone: z.string().optional().describe("IANA timezone (e.g., 'America/Los_Angeles')"),
+        })
+        .describe("Event start time. Provide either dateTime or date, not both."),
       end: z
-        .string()
-        .describe(
-          "Event end time. ISO 8601 format: '2025-01-01T11:00:00' for timed events or '2025-01-02' for all-day events (exclusive)",
-        ),
-      timeZone: z
-        .string()
-        .optional()
-        .describe("IANA timezone (e.g., 'America/Los_Angeles')"),
+        .object({
+          dateTime: z.string().optional().describe("ISO 8601 datetime for timed events"),
+          date: z.string().optional().describe("YYYY-MM-DD for all-day events"),
+          timeZone: z.string().optional().describe("IANA timezone (e.g., 'America/Los_Angeles')"),
+        })
+        .describe("Event end time. Provide either dateTime or date, not both."),
       location: z.string().optional().describe("Location of the event"),
       attendees: z
         .array(
@@ -78,7 +78,6 @@ export function createCreateEventTool(accessToken: string) {
       description,
       start,
       end,
-      timeZone,
       location,
       attendees,
       recurrence,
@@ -90,10 +89,6 @@ export function createCreateEventTool(accessToken: string) {
     }) => {
       const calendar = createCalendarClient(accessToken);
 
-      const isAllDay = /^\d{4}-\d{2}-\d{2}$/.test(start);
-      const startBody = isAllDay ? { date: start } : { dateTime: start, timeZone };
-      const endBody = isAllDay ? { date: end } : { dateTime: end, timeZone };
-
       const response = await calendar.events.insert({
         calendarId,
         sendUpdates,
@@ -101,8 +96,8 @@ export function createCreateEventTool(accessToken: string) {
         requestBody: {
           summary,
           description,
-          start: startBody,
-          end: endBody,
+          start,
+          end,
           location,
           attendees,
           recurrence,
