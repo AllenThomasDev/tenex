@@ -66,6 +66,7 @@ export function CommandMenu({ onSelectDate }: CommandMenuProps) {
   const { toggleChat } = useChatPanel()
   const router = useRouter()
 
+
   useEffect(() => {
     const saved = localStorage.getItem(MODE_KEY)
     const dark = saved ? saved === "dark" : document.documentElement.classList.contains("dark")
@@ -116,16 +117,9 @@ export function CommandMenu({ onSelectDate }: CommandMenuProps) {
       open={open}
       onOpenChange={setOpen}
       title="Command Menu"
-      onOpenAutoFocus={(event) => {
-        event.preventDefault()
-        requestAnimationFrame(() => {
-          document.querySelector<HTMLInputElement>("[cmdk-input]")?.focus()
-        })
-      }}
     >
       <Command onKeyDown={handleKeyDown}>
         <CommandInput
-          autoFocus
           placeholder={page === "theme" ? "Search themes..." : "Type a command..."}
           value={search}
           onValueChange={setSearch}

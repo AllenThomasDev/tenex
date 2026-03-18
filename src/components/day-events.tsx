@@ -1,8 +1,8 @@
 "use client"
 
 import * as React from "react"
-import { format, formatDistanceStrict, parseISO } from "date-fns"
-import { CalendarRange, Clock3, MapPin, Users } from "lucide-react"
+import { format, parseISO } from "date-fns"
+import { CalendarRange, MapPin, Users } from "lucide-react"
 import useSWR from "swr"
 
 import { Button } from "@/components/ui/button"
@@ -44,19 +44,96 @@ function formatTime(dateString?: string) {
   return format(date, "p")
 }
 
-function formatDuration(start?: string, end?: string) {
-  if (!start || !end) {
+function getEventTimeLabel(event: DayEvent) {
+  return event.isAllDay ? "All day" : `${formatTime(event.start)} - ${formatTime(event.end)}`
+}
+
+function EventDetails({
+  event,
+  iconClassName,
+  textClassName,
+  compact = false,
+}: {
+  event: DayEvent
+  iconClassName?: string
+  textClassName?: string
+  compact?: boolean
+}) {
+  if (!event.location && event.attendeesCount === 0) {
     return null
   }
 
-  const startDate = parseISO(start)
-  const endDate = parseISO(end)
+  return (
+    <div
+      className={cn(
+        "flex flex-wrap gap-x-4 gap-y-1.5 text-sm",
+        compact && "gap-x-3 gap-y-1 text-[13px]",
+        textClassName,
+      )}
+    >
+      {event.location ? (
+        <div className="inline-flex min-w-0 items-center gap-2">
+          <MapPin className={cn("size-4 shrink-0", iconClassName)} />
+          <span className="break-words">{event.location}</span>
+        </div>
+      ) : null}
 
-  if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime())) {
-    return null
-  }
+      {event.attendeesCount > 0 ? (
+        <div className="inline-flex items-center gap-2">
+          <Users className={cn("size-4 shrink-0", iconClassName)} />
+          <span>
+            {event.attendeesCount} attendee
+            {event.attendeesCount === 1 ? "" : "s"}
+          </span>
+        </div>
+      ) : null}
+    </div>
+  )
+}
 
-  return formatDistanceStrict(startDate, endDate)
+function DenseEventCard({
+  event,
+  index,
+}: {
+  event: DayEvent
+  index: number
+}) {
+  const hasDetails = Boolean(event.location) || event.attendeesCount > 0
+
+  return (
+    <article className="group border border-border bg-card text-card-foreground transition-colors hover:border-primary">
+      <div className="grid gap-px bg-border md:grid-cols-[auto_minmax(0,1fr)_auto]">
+        <div className="bg-card px-3 py-2.5">
+          <div className="flex min-h-10 items-center text-[11px] font-medium uppercase tracking-[0.22em] text-muted-foreground [font-family:var(--font-geist-mono)]">
+            {getEventTimeLabel(event)}
+          </div>
+        </div>
+        <div className="bg-card px-3 py-2.5">
+          <div className="flex min-h-10 items-center">
+            <h3 className="break-words text-base font-semibold tracking-[-0.03em] text-balance">
+              {event.title}
+            </h3>
+          </div>
+        </div>
+        <div className="bg-card px-3 py-2.5">
+          <div className="flex min-h-10 items-center justify-end text-[11px] font-medium uppercase tracking-[0.22em] text-muted-foreground [font-family:var(--font-geist-mono)] md:text-right">
+            #{String(index + 1).padStart(2, "0")}
+          </div>
+        </div>
+      </div>
+
+      {hasDetails ? (
+        <div className="border-t border-border px-3 py-2.5">
+          <EventDetails
+            event={event}
+            iconClassName="text-muted-foreground"
+            textClassName="text-muted-foreground"
+            compact
+          />
+        </div>
+      ) : null}
+    </article>
+  )
 }
 
 function DayEventsSkeleton() {
@@ -65,7 +142,7 @@ function DayEventsSkeleton() {
       {Array.from({ length: 3 }).map((_, index) => (
         <div
           key={index}
-          className="rounded-3xl border border-border bg-background p-5 shadow-sm"
+          className="border border-border bg-background p-5 shadow-sm"
         >
           <Skeleton className="h-4 w-32" />
           <Skeleton className="mt-4 h-7 w-2/3" />
@@ -116,7 +193,7 @@ export function DayEvents({ date, dayKey }: DayEventsProps) {
       {showSkeleton ? <DayEventsSkeleton /> : null}
 
       {!showSkeleton && error ? (
-        <div className="rounded-3xl border border-destructive/40 bg-destructive/10 p-5 text-destructive">
+        <div className="border border-destructive/40 bg-destructive/10 p-5 text-destructive">
           <p className="text-sm font-medium">Couldn&apos;t load the day&apos;s events.</p>
           <p className="mt-1 text-sm text-destructive/80">{error.message}</p>
           <Button
@@ -130,8 +207,8 @@ export function DayEvents({ date, dayKey }: DayEventsProps) {
       ) : null}
 
       {!showSkeleton && !error && events?.length === 0 ? (
-        <div className="rounded-3xl border border-dashed border-border bg-muted/30 p-8 text-center">
-          <div className="mx-auto flex size-12 items-center justify-center rounded-2xl bg-muted text-muted-foreground">
+        <div className="border border-dashed border-border bg-muted/30 p-8 text-center">
+          <div className="mx-auto flex size-12 items-center justify-center border border-border bg-muted text-muted-foreground">
             <CalendarRange className="size-5" />
           </div>
           <h3 className="mt-4 text-lg font-semibold text-foreground">
@@ -146,72 +223,8 @@ export function DayEvents({ date, dayKey }: DayEventsProps) {
       {!showSkeleton && !error && events && events.length > 0 ? (
         <div className="space-y-3">
           {events.map((event, index) => {
-            const duration = event.isAllDay ? null : formatDuration(event.start, event.end)
-
             return (
-              <article
-                key={event.id ?? `${event.title}-${event.start ?? index}`}
-                className={cn(
-                  "rounded-3xl border p-5 shadow-sm transition-colors",
-                  event.isAllDay
-                    ? "border-primary/30 bg-primary/10"
-                    : "border-border bg-card",
-                )}
-              >
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div className="min-w-0 space-y-2">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span
-                        className={cn(
-                          "inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium",
-                          event.isAllDay
-                            ? "bg-primary/10 text-primary"
-                            : "bg-foreground text-background",
-                        )}
-                      >
-                        {event.isAllDay
-                          ? "All day"
-                          : `${formatTime(event.start)} - ${formatTime(event.end)}`}
-                      </span>
-                      {duration ? (
-                        <span className="inline-flex items-center gap-1 text-sm text-muted-foreground">
-                          <Clock3 className="size-3.5" />
-                          {duration}
-                        </span>
-                      ) : null}
-                    </div>
-
-                    <h3 className="break-words text-lg font-semibold text-foreground">
-                      {event.title}
-                    </h3>
-                  </div>
-
-                  <div className="rounded-full border border-border bg-muted px-3 py-1 text-sm font-medium text-muted-foreground">
-                    {index + 1}
-                  </div>
-                </div>
-
-                {event.location || event.attendeesCount > 0 ? (
-                  <div className="mt-4 flex flex-wrap gap-4 text-sm text-muted-foreground">
-                    {event.location ? (
-                      <div className="inline-flex min-w-0 items-center gap-2">
-                        <MapPin className="size-4 text-muted-foreground/60" />
-                        <span className="break-words">{event.location}</span>
-                      </div>
-                    ) : null}
-
-                    {event.attendeesCount > 0 ? (
-                      <div className="inline-flex items-center gap-2">
-                        <Users className="size-4 text-muted-foreground/60" />
-                        <span>
-                          {event.attendeesCount} attendee
-                          {event.attendeesCount === 1 ? "" : "s"}
-                        </span>
-                      </div>
-                    ) : null}
-                  </div>
-                ) : null}
-              </article>
+              <DenseEventCard key={event.id ?? `${event.title}-${event.start ?? index}`} event={event} index={index} />
             )
           })}
         </div>

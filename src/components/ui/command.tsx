@@ -58,10 +58,6 @@ function CommandDialog({
 }) {
   return (
     <Dialog {...props}>
-      <DialogHeader className="sr-only">
-        <DialogTitle>{title}</DialogTitle>
-        <DialogDescription>{description}</DialogDescription>
-      </DialogHeader>
       <DialogContent
         className={cn(
           "top-1/3 translate-y-0 overflow-hidden rounded-none! border border-border p-0",
@@ -70,20 +66,25 @@ function CommandDialog({
         onOpenAutoFocus={onOpenAutoFocus}
         showCloseButton={showCloseButton}
       >
+        <DialogHeader className="sr-only">
+          <DialogTitle>{title}</DialogTitle>
+          <DialogDescription>{description}</DialogDescription>
+        </DialogHeader>
         {children}
       </DialogContent>
     </Dialog>
   )
 }
 
-function CommandInput({
-  className,
-  ...props
-}: React.ComponentProps<typeof CommandInputPrimitive>) {
+const CommandInput = React.forwardRef<
+  React.ElementRef<typeof CommandInputPrimitive>,
+  React.ComponentProps<typeof CommandInputPrimitive>
+>(({ className, ...props }, ref) => {
   return (
     <div data-slot="command-input-wrapper" className="p-3 pb-0">
       <InputGroup className="h-8! rounded-lg! border-input/30 bg-input/30 shadow-none! *:data-[slot=input-group-addon]:pl-2!">
         <CommandInputPrimitive
+          ref={ref}
           data-slot="command-input"
           className={cn(
             "w-full text-sm outline-hidden disabled:cursor-not-allowed disabled:opacity-50",
@@ -97,7 +98,9 @@ function CommandInput({
       </InputGroup>
     </div>
   )
-}
+})
+
+CommandInput.displayName = "CommandInput"
 
 function CommandList({
   className,

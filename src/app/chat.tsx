@@ -180,7 +180,7 @@ export function Chat({ dayKey }: ChatProps) {
               placeholder="Ask about your calendar…"
               autoComplete="off"
               spellCheck={false}
-              className="min-h-[38px] flex-1 resize-none overflow-y-auto bg-transparent py-2.5 pl-3.5 pr-1.5 text-[13px] placeholder:text-muted-foreground focus:outline-none"
+              className="min-h-[38px] flex-1 resize-none overflow-hidden bg-transparent py-2.5 pl-3.5 pr-1.5 text-[13px] placeholder:text-muted-foreground focus:outline-none"
             />
             <div className="shrink-0 pb-1.5 pr-1.5">
               <button
