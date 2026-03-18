@@ -16,6 +16,13 @@ const EVENT_COLORS: Record<string, { background: string; foreground: string }> =
   "11": { background: "#dc2127", foreground: "#ffffff" },
 };
 
+const VIDEO_CALL_PATTERN = /https?:\/\/[^\s]*(zoom\.us|teams\.microsoft\.com|meet\.google\.com|webex\.com|gotomeeting\.com|whereby\.com)[^\s]*/i;
+
+function extractVideoLink(text: string | null | undefined) {
+  if (!text) return undefined;
+  return text.match(VIDEO_CALL_PATTERN)?.[0];
+}
+
 export function mapEvent(event: calendar_v3.Schema$Event) {
   const selfAttendee = event.attendees?.find((a) => a.self);
   const conferenceUri = event.conferenceData?.entryPoints?.find(
@@ -28,7 +35,7 @@ export function mapEvent(event: calendar_v3.Schema$Event) {
     start: event.start?.dateTime ?? event.start?.date,
     end: event.end?.dateTime ?? event.end?.date,
     isAllDay: Boolean(event.start?.date && !event.start?.dateTime),
-    location: event.location,
+    location: extractVideoLink(event.location) ? undefined : event.location,
     attendeesCount: event.attendees?.length ?? 0,
     attendees: (event.attendees ?? []).map((a) => ({
       email: a.email ?? undefined,
@@ -41,7 +48,7 @@ export function mapEvent(event: calendar_v3.Schema$Event) {
     htmlLink: event.htmlLink,
     description: event.description,
     hangoutLink: event.hangoutLink,
-    conferenceLink: conferenceUri ?? event.hangoutLink,
+    conferenceLink: conferenceUri ?? event.hangoutLink ?? extractVideoLink(event.location) ?? extractVideoLink(event.description),
     organizer: event.organizer
       ? {
           email: event.organizer.email ?? undefined,

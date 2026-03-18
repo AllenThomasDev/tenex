@@ -169,10 +169,16 @@ function Inspector({ event }: { event: DayEvent | null }) {
 
         {event.location ? (
           <InspectorRow label="Location">
-            <span className="inline-flex items-start gap-1.5">
-              <MapPin className="size-3.5 mt-0.5 shrink-0 text-muted-foreground" />
+            <a
+              href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(event.location)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-start gap-1.5 text-[13px] font-medium text-primary hover:underline underline-offset-2"
+            >
+              <MapPin className="size-3.5 mt-0.5 shrink-0" />
               <span className="break-words">{event.location}</span>
-            </span>
+              <ArrowUpRight className="size-3 mt-0.5 shrink-0" />
+            </a>
           </InspectorRow>
         ) : null}
 
