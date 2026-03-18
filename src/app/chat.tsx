@@ -1,6 +1,5 @@
 "use client";
 
-import { useChat } from "@ai-sdk/react";
 import { getToolName, isToolUIPart } from "ai";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useSWRConfig } from "swr";
@@ -50,19 +49,14 @@ function renderToolMessage(part: Parameters<typeof getToolName>[0] & {
 
 export function Chat({ dayKey }: ChatProps) {
   const [input, setInput] = useState("");
-  const { messages, sendMessage, status } = useChat();
+  const { chat } = useChatPanel();
+  const { messages, sendMessage, status } = chat;
   const { mutate } = useSWRConfig();
   const refreshedToolCallIdsRef = useRef(new Set<string>());
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const isLoading = status === "submitted" || status === "streaming";
-  const { setIsWorking } = useChatPanel();
-
-  // Sync loading state to the panel so the floating button can show a working indicator
-  useEffect(() => {
-    setIsWorking(isLoading);
-  }, [isLoading, setIsWorking]);
 
   // Refresh the day's events after any calendar mutation tool completes
   useEffect(() => {

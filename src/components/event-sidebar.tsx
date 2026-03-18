@@ -113,13 +113,6 @@ function NotesEditor({
   const textareaRef = React.useRef<HTMLTextAreaElement>(null)
 
   React.useEffect(() => {
-    setDraft(event.description ?? "")
-    setIsEditing(false)
-    setIsSaving(false)
-    setError(null)
-  }, [event.id, event.description])
-
-  React.useEffect(() => {
     if (!isEditing) return
     textareaRef.current?.focus()
     textareaRef.current?.setSelectionRange(draft.length, draft.length)
@@ -263,6 +256,8 @@ function Inspector({
 }) {
   if (!event) return <EmptyState />
 
+  const notesEditorKey = event.id ?? `${event.start ?? ""}-${event.end ?? ""}-${event.title}`
+
   return (
     <div className="flex h-full flex-col overflow-hidden">
       {/* Header */}
@@ -388,7 +383,7 @@ function Inspector({
           <span className="block text-[10px] font-medium uppercase tracking-[0.22em] text-muted-foreground [font-family:var(--font-geist-mono)] mb-2">
             Notes
           </span>
-          <NotesEditor event={event} onUpdate={onUpdate} />
+          <NotesEditor key={notesEditorKey} event={event} onUpdate={onUpdate} />
         </div>
       </div>
     </div>

@@ -6,7 +6,8 @@ import { cn } from "@/lib/utils"
 import { useChatPanel } from "@/components/chat-provider"
 
 export function FloatingAssistantButton() {
-  const { state, toggleChat } = useChatPanel()
+  const { chat, state, toggleChat } = useChatPanel()
+  const isWorking = chat.status === "submitted" || chat.status === "streaming"
 
   return (
     <button
@@ -27,7 +28,7 @@ export function FloatingAssistantButton() {
       title="Assistant (⌘I)"
     >
       <Bot className="w-4 h-4" />
-      {state.isWorking && (
+      {isWorking && (
         <span className="absolute inset-0 rounded-full border border-foreground/20 animate-ping" />
       )}
     </button>

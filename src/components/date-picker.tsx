@@ -12,6 +12,14 @@ type DatePickerProps = {
 }
 
 export function DatePicker({ date, onSelect }: DatePickerProps) {
+  const [month, setMonth] = React.useState(date)
+  const [prevDate, setPrevDate] = React.useState(date)
+
+  if (date !== prevDate) {
+    setPrevDate(date)
+    setMonth(date)
+  }
+
   return (
     <SidebarGroup className="px-0">
       <SidebarGroupContent>
@@ -20,6 +28,8 @@ export function DatePicker({ date, onSelect }: DatePickerProps) {
           required
           selected={date}
           onSelect={onSelect}
+          month={month}
+          onMonthChange={setMonth}
           captionLayout="dropdown"
           className="bg-transparent [--cell-size:2.1rem]"
         />

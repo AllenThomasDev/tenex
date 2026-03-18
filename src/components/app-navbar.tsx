@@ -2,7 +2,6 @@
 
 import { CalendarDays, LogOutIcon } from "lucide-react"
 import { useRouter } from "next/navigation"
-import { useEffect, useState } from "react"
 
 import { authClient } from "@/auth-client"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -18,40 +17,6 @@ import { cn } from "@/lib/utils"
 import { useChatPanel } from "@/components/chat-provider"
 import { assistant } from "@/lib/assistant"
 
-const THEME_KEY = "color-theme"
-
-const themes = [
-  { id: "default",    label: "Default",    color: "oklch(0.205 0 0)" },
-  { id: "catppuccin", label: "Catppuccin", color: "oklch(0.5547 0.2503 297.0156)" },
-  { id: "yellow",     label: "Yellow",     color: "oklch(0.852 0.199 91.936)" },
-] as const
-
-type ThemeId = (typeof themes)[number]["id"]
-
-function useColorTheme() {
-  const [theme, setThemeState] = useState<ThemeId>("default")
-
-  useEffect(() => {
-    const saved = localStorage.getItem(THEME_KEY) as ThemeId | null
-    if (saved && themes.some((t) => t.id === saved)) {
-      applyTheme(saved)
-      setThemeState(saved)
-    }
-  }, [])
-
-  function applyTheme(id: ThemeId) {
-    if (id === "default") {
-      document.documentElement.removeAttribute("data-theme")
-    } else {
-      document.documentElement.setAttribute("data-theme", id)
-    }
-    localStorage.setItem(THEME_KEY, id)
-    setThemeState(id)
-  }
-
-  return { theme, applyTheme }
-}
-
 type AppNavbarProps = {
   user: {
     name?: string | null
@@ -61,9 +26,9 @@ type AppNavbarProps = {
 }
 
 export function AppNavbar({ user }: AppNavbarProps) {
-  const { state, toggleChat } = useChatPanel()
+  const { chat, state, toggleChat } = useChatPanel()
   const router = useRouter()
-  const { theme, applyTheme } = useColorTheme()
+  const isWorking = chat.status === "submitted" || chat.status === "streaming"
 
   const displayName = user?.name?.trim() || user?.email || ""
   const fallback = displayName
@@ -110,7 +75,7 @@ export function AppNavbar({ user }: AppNavbarProps) {
             )}
           >
             <span className="[&>svg]:h-4 [&>svg]:w-4">{assistant.icon}</span>
-            {state.isWorking && (
+            {isWorking && (
               <span className="absolute inset-0 rounded-md border border-foreground/20 animate-ping" />
             )}
           </button>
@@ -149,25 +114,6 @@ export function AppNavbar({ user }: AppNavbarProps) {
                     </div>
                   </div>
                 </DropdownMenuLabel>
-                <DropdownMenuSeparator className="my-0" />
-                <div className="px-3 py-2 flex items-center justify-between">
-                  <span className="text-[11px] text-muted-foreground">Theme</span>
-                  <div className="flex items-center gap-1">
-                    {themes.map((t) => (
-                      <button
-                        key={t.id}
-                        type="button"
-                        title={t.label}
-                        onClick={() => applyTheme(t.id)}
-                        className={cn(
-                          "size-4 rounded-full border-2 transition-all",
-                          theme === t.id ? "border-foreground/50 scale-110" : "border-transparent hover:border-foreground/20",
-                        )}
-                        style={{ background: t.color }}
-                      />
-                    ))}
-                  </div>
-                </div>
                 <DropdownMenuSeparator className="my-0" />
                 <div className="p-1">
                   <DropdownMenuItem

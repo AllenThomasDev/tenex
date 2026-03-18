@@ -1,5 +1,6 @@
 "use client"
 
+import { useChat } from "@ai-sdk/react"
 import {
   createContext,
   useCallback,
@@ -12,15 +13,14 @@ import {
 
 interface ChatPanelState {
   isOpen: boolean
-  isWorking: boolean
 }
 
 interface ChatPanelContextValue {
+  chat: ReturnType<typeof useChat>
   state: ChatPanelState
   openChat: () => void
   closeChat: () => void
   toggleChat: () => void
-  setIsWorking: (working: boolean) => void
 }
 
 const ChatPanelContext = createContext<ChatPanelContextValue | null>(null)
@@ -32,7 +32,8 @@ export function useChatPanel() {
 }
 
 export function ChatPanelProvider({ children }: { children: ReactNode }) {
-  const [state, setState] = useState<ChatPanelState>({ isOpen: false, isWorking: false })
+  const chat = useChat()
+  const [state, setState] = useState<ChatPanelState>({ isOpen: false })
   const isOpenRef = useRef(false)
 
   const openChat = useCallback(() => {
@@ -53,10 +54,6 @@ export function ChatPanelProvider({ children }: { children: ReactNode }) {
     })
   }, [])
 
-  const setIsWorking = useCallback((working: boolean) => {
-    setState(prev => ({ ...prev, isWorking: working }))
-  }, [])
-
   // ⌘I / Ctrl+I to toggle panel
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -70,7 +67,7 @@ export function ChatPanelProvider({ children }: { children: ReactNode }) {
   }, [toggleChat])
 
   return (
-    <ChatPanelContext.Provider value={{ state, openChat, closeChat, toggleChat, setIsWorking }}>
+    <ChatPanelContext.Provider value={{ chat, state, openChat, closeChat, toggleChat }}>
       {children}
     </ChatPanelContext.Provider>
   )

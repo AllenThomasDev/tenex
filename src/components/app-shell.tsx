@@ -39,6 +39,7 @@ export function AppShell({ user }: AppShellProps) {
 
   function handleSelectDate(nextDate: Date) {
     if (isSameDay(nextDate, selectedDate)) {
+      setSelectedDate(new Date(nextDate))
       return
     }
 
