@@ -1,21 +1,9 @@
 import { auth } from "@/auth";
 import { google } from "googleapis";
 import { headers } from "next/headers";
+import { getUtcBoundsForLocalDate } from "@/lib/calendar-timezone";
 
 const DATE_PARAM_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
-
-function getUtcBoundsForLocalDate(date: string, offsetMinutes: number) {
-  const [year, month, day] = date.split("-").map(Number);
-
-  const startUtc = new Date(
-    Date.UTC(year, month - 1, day, 0, 0, 0) + offsetMinutes * 60_000,
-  );
-  const endUtc = new Date(
-    Date.UTC(year, month - 1, day + 1, 0, 0, 0) + offsetMinutes * 60_000,
-  );
-
-  return { startUtc, endUtc };
-}
 
 export async function GET(request: Request) {
   const requestHeaders = await headers();
@@ -49,7 +37,7 @@ export async function GET(request: Request) {
 
   const { searchParams } = new URL(request.url);
   const dateParam = searchParams.get("date");
-  const offsetParam = searchParams.get("timeZoneOffset");
+  const timeZone = searchParams.get("timeZone");
 
   if (!dateParam || !DATE_PARAM_PATTERN.test(dateParam)) {
     return Response.json(
@@ -58,16 +46,14 @@ export async function GET(request: Request) {
     );
   }
 
-  const offsetMinutes = Number(offsetParam);
-
-  if (!Number.isFinite(offsetMinutes)) {
+  if (!timeZone) {
     return Response.json(
-      { error: "A valid timezone offset is required" },
+      { error: "A valid time zone is required" },
       { status: 400 },
     );
   }
 
-  const { startUtc, endUtc } = getUtcBoundsForLocalDate(dateParam, offsetMinutes);
+  const { startUtc, endUtc } = getUtcBoundsForLocalDate(dateParam, timeZone);
 
   const response = await calendar.events.list({
     calendarId: "primary",

@@ -11,6 +11,7 @@ import { ChatPanel } from "@/components/chat-panel"
 import { AppNavbar } from "@/components/app-navbar"
 import { CommandMenu } from "@/components/command-menu"
 import { getCalendarDayKey } from "@/lib/calendar-day"
+import { useMonthPrefetch } from "@/hooks/use-month-prefetch"
 
 type AppShellProps = {
   user: {
@@ -27,6 +28,8 @@ export function AppShell({ user }: AppShellProps) {
     () => getCalendarDayKey(selectedDate),
     [selectedDate]
   )
+
+  useMonthPrefetch(selectedDate)
 
   function handleSelectDate(nextDate: Date) {
     if (isSameDay(nextDate, selectedDate)) {

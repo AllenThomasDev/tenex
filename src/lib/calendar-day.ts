@@ -1,3 +1,5 @@
+import { getUserTimeZone } from "@/lib/calendar-timezone"
+
 export function toCalendarDayId(date: Date) {
   const year = date.getFullYear()
   const month = String(date.getMonth() + 1).padStart(2, "0")
@@ -9,7 +11,7 @@ export function toCalendarDayId(date: Date) {
 export function getCalendarDayKey(date: Date) {
   const searchParams = new URLSearchParams({
     date: toCalendarDayId(date),
-    timeZoneOffset: String(date.getTimezoneOffset()),
+    timeZone: getUserTimeZone(),
   })
 
   return `/api/calendar?${searchParams.toString()}`

@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { addDays, subDays } from "date-fns"
 import {
@@ -65,7 +65,6 @@ export function CommandMenu({ onSelectDate }: CommandMenuProps) {
   const [isDark, setIsDark] = useState(true)
   const { toggleChat } = useChatPanel()
   const router = useRouter()
-  const inputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     const saved = localStorage.getItem(MODE_KEY)
@@ -113,11 +112,21 @@ export function CommandMenu({ onSelectDate }: CommandMenuProps) {
   }
 
   return (
-    <CommandDialog open={open} onOpenChange={setOpen} title="Command Menu">
+    <CommandDialog
+      open={open}
+      onOpenChange={setOpen}
+      title="Command Menu"
+      onOpenAutoFocus={(event) => {
+        event.preventDefault()
+        requestAnimationFrame(() => {
+          document.querySelector<HTMLInputElement>("[cmdk-input]")?.focus()
+        })
+      }}
+    >
       <Command onKeyDown={handleKeyDown}>
         <CommandInput
-          ref={inputRef}
-          placeholder={page === "theme" ? "Search themes…" : "Type a command…"}
+          autoFocus
+          placeholder={page === "theme" ? "Search themes..." : "Type a command..."}
           value={search}
           onValueChange={setSearch}
         />

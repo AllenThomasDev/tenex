@@ -98,6 +98,7 @@ export function DayEvents({ date, dayKey }: DayEventsProps) {
     swrKey,
     fetchEvents,
   )
+  const showSkeleton = !events && isLoading
 
   return (
     <section aria-labelledby="events-heading" className="space-y-4">
@@ -108,13 +109,13 @@ export function DayEvents({ date, dayKey }: DayEventsProps) {
           </h2>
         </div>
         <p aria-live="polite" className="text-sm text-muted-foreground">
-          {isLoading ? "Refreshing events…" : `${events?.length ?? 0} planned`}
+          {showSkeleton ? "" : `${events?.length ?? 0} planned`}
         </p>
       </div>
 
-      {isLoading ? <DayEventsSkeleton /> : null}
+      {showSkeleton ? <DayEventsSkeleton /> : null}
 
-      {!isLoading && error ? (
+      {!showSkeleton && error ? (
         <div className="rounded-3xl border border-destructive/40 bg-destructive/10 p-5 text-destructive">
           <p className="text-sm font-medium">Couldn&apos;t load the day&apos;s events.</p>
           <p className="mt-1 text-sm text-destructive/80">{error.message}</p>
@@ -128,7 +129,7 @@ export function DayEvents({ date, dayKey }: DayEventsProps) {
         </div>
       ) : null}
 
-      {!isLoading && !error && events?.length === 0 ? (
+      {!showSkeleton && !error && events?.length === 0 ? (
         <div className="rounded-3xl border border-dashed border-border bg-muted/30 p-8 text-center">
           <div className="mx-auto flex size-12 items-center justify-center rounded-2xl bg-muted text-muted-foreground">
             <CalendarRange className="size-5" />
@@ -142,7 +143,7 @@ export function DayEvents({ date, dayKey }: DayEventsProps) {
         </div>
       ) : null}
 
-      {!isLoading && !error && events && events.length > 0 ? (
+      {!showSkeleton && !error && events && events.length > 0 ? (
         <div className="space-y-3">
           {events.map((event, index) => {
             const duration = event.isAllDay ? null : formatDuration(event.start, event.end)
