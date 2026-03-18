@@ -109,16 +109,13 @@ function DenseEventCard({
   index,
   isSelected,
   onSelect,
-  defaultColor,
 }: {
   event: DayEvent
   index: number
   isSelected?: boolean
   onSelect?: () => void
-  defaultColor?: string
 }) {
   const hasDetails = Boolean(event.location) || event.attendeesCount > 0
-  const stripColor = event.color?.background ?? defaultColor
 
   return (
     <article
@@ -129,10 +126,10 @@ function DenseEventCard({
       )}
       onClick={onSelect}
     >
-      {stripColor ? (
+      {event.color ? (
         <div
           className="w-1 shrink-0"
-          style={{ backgroundColor: stripColor }}
+          style={{ backgroundColor: event.color.background }}
         />
       ) : null}
       <div className="flex-1 min-w-0">
@@ -204,23 +201,12 @@ async function fetchEvents(url: string): Promise<DayEvent[]> {
   return data.events
 }
 
-type CalendarInfo = { id: string; primary: boolean; backgroundColor?: string }
-
-async function fetchCalendars(url: string): Promise<CalendarInfo[]> {
-  const res = await fetch(url)
-  if (!res.ok) return []
-  const data = await res.json()
-  return data.calendars ?? []
-}
-
 export function DayEvents({ date, dayKey, selectedEventId, onSelectEvent }: DayEventsProps) {
   const swrKey = React.useMemo(() => dayKey ?? getCalendarDayKey(date), [date, dayKey])
   const { data: events, error, isLoading, mutate } = useSWR<DayEvent[]>(
     swrKey,
     fetchEvents,
   )
-  const { data: calendars } = useSWR("/api/calendar/calendars", fetchCalendars)
-  const defaultColor = calendars?.find((c) => c.primary)?.backgroundColor
   const showSkeleton = !events && isLoading
 
   return (
@@ -276,7 +262,6 @@ export function DayEvents({ date, dayKey, selectedEventId, onSelectEvent }: DayE
                 index={index}
                 isSelected={Boolean(event.id && event.id === selectedEventId)}
                 onSelect={onSelectEvent ? () => onSelectEvent(event.id ?? null) : undefined}
-                defaultColor={defaultColor}
               />
             )
           })}
