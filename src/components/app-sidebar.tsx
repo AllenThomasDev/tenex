@@ -27,8 +27,7 @@ export function AppSidebar({
   ...props
 }: AppSidebarProps) {
   return (
-    <Sidebar {...props}>
-      <SidebarHeader className="h-10 border-b border-sidebar-border" />
+    <Sidebar className="top-10 h-[calc(100svh-2.5rem)]" {...props}>
       <SidebarContent>
         <DatePicker date={selectedDate} onSelect={onSelectDate} />
       </SidebarContent>

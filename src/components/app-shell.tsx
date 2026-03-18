@@ -60,8 +60,8 @@ export function AppShell({ user }: AppShellProps) {
   return (
     <ChatPanelProvider>
       <AppNavbar user={user} />
-      <div className="overflow-hidden">
-      <SidebarProvider>
+      <div className="flex h-svh flex-col pt-10 overflow-hidden">
+      <SidebarProvider className="flex-1 min-h-0">
         {user ? (
           <AppSidebar
             user={user}
@@ -70,9 +70,9 @@ export function AppShell({ user }: AppShellProps) {
           />
         ) : null}
         <SidebarInset id="main-content">
-          <div className="flex h-svh flex-col bg-background">
+          <div className="flex h-full flex-col bg-background">
             <div className="flex-1 overflow-y-auto">
-              <div className="mx-auto w-full max-w-2xl px-6 pt-16">
+              <div className="mx-auto w-full max-w-2xl px-6 pt-8">
                 {user ? (
                   <div className="flex flex-col gap-8">
                     <div
@@ -103,6 +103,7 @@ export function AppShell({ user }: AppShellProps) {
         </SidebarInset>
       </SidebarProvider>
       </div>
+
 
       <CommandMenu onSelectDate={handleSelectDate} />
       <ChatPanel dayKey={selectedDayKey} />
