@@ -1,11 +1,17 @@
 import { betterAuth } from "better-auth";
 import { nextCookies } from "better-auth/next-js";
-import Database from "better-sqlite3";
+import { LibsqlDialect } from "@libsql/kysely-libsql";
 
 export const auth = betterAuth({
   baseURL: process.env.AUTH_URL,
   secret: process.env.AUTH_SECRET,
-  database: new Database("auth.db"),
+  database: {
+    dialect: new LibsqlDialect({
+      url: process.env.TURSO_DATABASE_URL!,
+      authToken: process.env.TURSO_AUTH_TOKEN!,
+    }),
+    type: "sqlite",
+  },
   plugins: [nextCookies()],
   session: {
     expiresIn: 60 * 60 * 24 * 30, // 30 days
