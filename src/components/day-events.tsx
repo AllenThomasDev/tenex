@@ -27,6 +27,7 @@ type DayEvent = {
   organizer?: { email?: string; displayName?: string; self?: boolean }
   selfResponseStatus?: string
   colorId?: string
+  color?: { background: string; foreground: string }
   recurringEventId?: string
   visibility?: string
 }
@@ -108,53 +109,64 @@ function DenseEventCard({
   index,
   isSelected,
   onSelect,
+  defaultColor,
 }: {
   event: DayEvent
   index: number
   isSelected?: boolean
   onSelect?: () => void
+  defaultColor?: string
 }) {
   const hasDetails = Boolean(event.location) || event.attendeesCount > 0
+  const stripColor = event.color?.background ?? defaultColor
 
   return (
     <article
       className={cn(
-        "group border border-border bg-card text-card-foreground transition-colors hover:border-primary",
+        "group flex border border-border bg-card text-card-foreground transition-colors hover:border-primary",
         isSelected && "border-primary ring-1 ring-primary/30",
         onSelect && "cursor-pointer",
       )}
       onClick={onSelect}
     >
-      <div className="grid gap-px bg-border md:grid-cols-[auto_minmax(0,1fr)_auto]">
-        <div className="bg-card px-3 py-2.5">
-          <div className="flex min-h-10 items-center text-[11px] font-medium uppercase tracking-[0.22em] text-muted-foreground [font-family:var(--font-geist-mono)]">
-            {getEventTimeLabel(event)}
-          </div>
-        </div>
-        <div className="bg-card px-3 py-2.5">
-          <div className="flex min-h-10 items-center">
-            <h3 className="break-words text-base font-semibold tracking-[-0.03em] text-balance">
-              {event.title}
-            </h3>
-          </div>
-        </div>
-        <div className="bg-card px-3 py-2.5">
-          <div className="flex min-h-10 items-center justify-end text-[11px] font-medium uppercase tracking-[0.22em] text-muted-foreground [font-family:var(--font-geist-mono)] md:text-right">
-            #{String(index + 1).padStart(2, "0")}
-          </div>
-        </div>
-      </div>
-
-      {hasDetails ? (
-        <div className="border-t border-border px-3 py-2.5">
-          <EventDetails
-            event={event}
-            iconClassName="text-muted-foreground"
-            textClassName="text-muted-foreground"
-            compact
-          />
-        </div>
+      {stripColor ? (
+        <div
+          className="w-1 shrink-0"
+          style={{ backgroundColor: stripColor }}
+        />
       ) : null}
+      <div className="flex-1 min-w-0">
+        <div className="grid gap-px bg-border md:grid-cols-[auto_minmax(0,1fr)_auto]">
+          <div className="bg-card px-3 py-2.5">
+            <div className="flex min-h-10 items-center text-[11px] font-medium uppercase tracking-[0.22em] text-muted-foreground [font-family:var(--font-geist-mono)]">
+              {getEventTimeLabel(event)}
+            </div>
+          </div>
+          <div className="bg-card px-3 py-2.5">
+            <div className="flex min-h-10 items-center">
+              <h3 className="break-words text-base font-semibold tracking-[-0.03em] text-balance">
+                {event.title}
+              </h3>
+            </div>
+          </div>
+          <div className="bg-card px-3 py-2.5">
+            <div className="flex min-h-10 items-center justify-end text-[11px] font-medium uppercase tracking-[0.22em] text-muted-foreground [font-family:var(--font-geist-mono)] md:text-right">
+              #{String(index + 1).padStart(2, "0")}
+            </div>
+          </div>
+        </div>
+
+        {hasDetails ? (
+          <div className="border-t border-border px-3 py-2.5">
+            <EventDetails
+              event={event}
+              iconClassName="text-muted-foreground"
+              textClassName="text-muted-foreground"
+              compact
+            />
+          </div>
+        ) : null}
+      </div>
     </article>
   )
 }
@@ -192,12 +204,23 @@ async function fetchEvents(url: string): Promise<DayEvent[]> {
   return data.events
 }
 
+type CalendarInfo = { id: string; primary: boolean; backgroundColor?: string }
+
+async function fetchCalendars(url: string): Promise<CalendarInfo[]> {
+  const res = await fetch(url)
+  if (!res.ok) return []
+  const data = await res.json()
+  return data.calendars ?? []
+}
+
 export function DayEvents({ date, dayKey, selectedEventId, onSelectEvent }: DayEventsProps) {
   const swrKey = React.useMemo(() => dayKey ?? getCalendarDayKey(date), [date, dayKey])
   const { data: events, error, isLoading, mutate } = useSWR<DayEvent[]>(
     swrKey,
     fetchEvents,
   )
+  const { data: calendars } = useSWR("/api/calendar/calendars", fetchCalendars)
+  const defaultColor = calendars?.find((c) => c.primary)?.backgroundColor
   const showSkeleton = !events && isLoading
 
   return (
@@ -253,6 +276,7 @@ export function DayEvents({ date, dayKey, selectedEventId, onSelectEvent }: DayE
                 index={index}
                 isSelected={Boolean(event.id && event.id === selectedEventId)}
                 onSelect={onSelectEvent ? () => onSelectEvent(event.id ?? null) : undefined}
+                defaultColor={defaultColor}
               />
             )
           })}
