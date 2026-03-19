@@ -95,7 +95,7 @@ function DenseEventCard({
   const hasDetails = Boolean(event.location) || event.attendeesCount > 0
   const timingLabel = timingState === "past" ? "Done" : timingState === "current" ? "Now" : null
   const surfaceClassName = cn(
-    "bg-card",
+    "bg-card transition-colors group-hover:bg-muted/50",
     timingState === "current" && "bg-primary/[0.03]",
   )
 
@@ -103,7 +103,7 @@ function DenseEventCard({
     <div className="relative">
       <article
         className={cn(
-          "group flex min-w-0 border border-border bg-card text-card-foreground transition-colors hover:border-primary",
+          "group flex min-w-0 border border-border bg-card text-card-foreground transition-colors",
           timingState === "past" && "border-dashed opacity-50",
           timingState === "current" && "border-primary/60 bg-primary/[0.03] shadow-[0_0_0_1px_rgba(0,0,0,0.02)]",
           isInChatContext && "border-primary/70 bg-primary/[0.04] ring-1 ring-primary/20",
@@ -156,7 +156,7 @@ function DenseEventCard({
           </div>
 
           {hasDetails ? (
-            <div className="border-t border-border px-3 py-2.5">
+            <div className={cn(surfaceClassName, "border-t border-border px-3 py-2.5")}>
               <EventDetails
                 event={event}
                 iconClassName={cn(
