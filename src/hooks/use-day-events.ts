@@ -3,6 +3,7 @@ import { isPast, isToday, parseISO, startOfDay } from "date-fns"
 import useSWR from "swr"
 
 import { getCalendarDayKey } from "@/lib/calendar-day"
+import { CALENDAR_DAY_SWR_OPTIONS } from "@/lib/calendar-swr"
 
 export type DayEvent = {
   id?: string
@@ -81,6 +82,7 @@ export function useDayEvents(date: Date, dayKey?: string) {
   const { data: events, error, isLoading, mutate } = useSWR<DayEvent[]>(
     swrKey,
     fetchDayEvents,
+    CALENDAR_DAY_SWR_OPTIONS,
   )
   const [now, setNow] = React.useState(() => new Date())
   const isViewingToday = isToday(date)

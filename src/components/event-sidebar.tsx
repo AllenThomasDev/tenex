@@ -21,6 +21,7 @@ import {
 import { cn } from "@/lib/utils"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Textarea } from "@/components/ui/textarea"
+import { CALENDAR_DAY_SWR_OPTIONS } from "@/lib/calendar-swr"
 
 // ─── Shared type (mirrors DayEvent from day-events.tsx) ─────────────────────
 
@@ -426,7 +427,11 @@ type EventSidebarPanelProps = {
 }
 
 export function EventSidebarPanel({ dayKey, selectedEventId }: EventSidebarPanelProps) {
-  const { data: events, isLoading, mutate } = useSWR<DayEvent[]>(dayKey, fetchEvents)
+  const { data: events, isLoading, mutate } = useSWR<DayEvent[]>(
+    dayKey,
+    fetchEvents,
+    CALENDAR_DAY_SWR_OPTIONS,
+  )
 
   const selectedEvent = React.useMemo(() => {
     if (!events || !selectedEventId) return null

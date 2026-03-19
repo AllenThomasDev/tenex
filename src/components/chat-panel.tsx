@@ -1,9 +1,9 @@
 "use client"
 
-import { useCallback, useEffect, useRef, useState } from "react"
+import dynamic from "next/dynamic"
+import { useCallback, useRef, useState } from "react"
 
 import { cn } from "@/lib/utils"
-import { Chat } from "@/app/chat"
 import { useChatPanel } from "@/components/chat-provider"
 
 type ChatPanelProps = {
@@ -14,15 +14,18 @@ const DEFAULT_PANEL_WIDTH = 380
 const MIN_PANEL_WIDTH = 320
 const MAX_PANEL_WIDTH = 700
 
+const Chat = dynamic(
+  () => import("@/app/chat").then((module) => module.Chat),
+  {
+    ssr: false,
+    loading: () => <div className="flex-1 bg-background" />,
+  },
+)
+
 export function ChatPanel({ dayKey }: ChatPanelProps) {
   const { state } = useChatPanel()
   const [panelWidth, setPanelWidth] = useState(DEFAULT_PANEL_WIDTH)
   const dragRef = useRef<{ startX: number; startWidth: number } | null>(null)
-
-  // Defer rendering until after hydration — panel starts hidden (translate-x-full)
-  // and depends on client-only state, so SSR would cause hydration mismatches.
-  const [mounted, setMounted] = useState(false)
-  useEffect(() => setMounted(true), [])
 
   const handleResizeStart = useCallback(
     (e: React.MouseEvent) => {
@@ -50,8 +53,6 @@ export function ChatPanel({ dayKey }: ChatPanelProps) {
     [panelWidth],
   )
 
-  if (!mounted) return null
-
   return (
     <div
       className={cn(
@@ -73,7 +74,7 @@ export function ChatPanel({ dayKey }: ChatPanelProps) {
       <div className="flex-1 min-w-0 flex flex-col">
         {/* Chat content */}
         <div className="flex-1 min-h-0 flex flex-col">
-          <Chat dayKey={dayKey} />
+          {state.isOpen ? <Chat dayKey={dayKey} /> : null}
         </div>
       </div>
     </div>

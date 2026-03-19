@@ -1,5 +1,9 @@
 import { getCalendarClient, mapEvent } from "@/lib/calendar-api";
 
+const CALENDAR_RESPONSE_HEADERS = {
+  "Cache-Control": "private, max-age=30, stale-while-revalidate=300",
+};
+
 export async function GET(request: Request) {
   const result = await getCalendarClient();
   if ("error" in result) return result.error;
@@ -24,9 +28,14 @@ export async function GET(request: Request) {
     maxResults: 2500,
   });
 
-  return Response.json({
-    events: (response.data.items ?? []).map(mapEvent),
-  });
+  return Response.json(
+    {
+      events: (response.data.items ?? []).map(mapEvent),
+    },
+    {
+      headers: CALENDAR_RESPONSE_HEADERS,
+    },
+  );
 }
 
 export async function PATCH(request: Request) {

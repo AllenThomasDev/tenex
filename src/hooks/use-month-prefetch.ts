@@ -7,6 +7,10 @@ import { useSWRConfig } from "swr"
 
 import { getUserTimeZone } from "@/lib/calendar-timezone"
 import { getCalendarDayKey } from "@/lib/calendar-day"
+import {
+  getCalendarMonthPrefetchKey,
+  MONTH_PREFETCH_TTL_MS,
+} from "@/lib/calendar-swr"
 
 type CalendarEvent = {
   id?: string
@@ -75,8 +79,20 @@ export function useMonthPrefetch(selectedDate: Date) {
   const month = selectedDate.getMonth() + 1
   const monthKey = `${year}-${String(month).padStart(2, "0")}`
   const timeZone = getUserTimeZone()
+  const prefetchKey = getCalendarMonthPrefetchKey(monthKey, timeZone)
 
   useEffect(() => {
+    const cachedPrefetchState = cache.get(prefetchKey)?.data as
+      | { fetchedAt?: number }
+      | undefined
+
+    if (
+      cachedPrefetchState?.fetchedAt &&
+      Date.now() - cachedPrefetchState.fetchedAt < MONTH_PREFETCH_TTL_MS
+    ) {
+      return
+    }
+
     const controller = new AbortController()
 
     const start = new TZDate(year, month - 1, 1, timeZone)
@@ -101,9 +117,11 @@ export function useMonthPrefetch(selectedDate: Date) {
             mutate(swrKey, events, { revalidate: false })
           }
         }
+
+        mutate(prefetchKey, { fetchedAt: Date.now() }, { revalidate: false })
       })
       .catch(() => {})
 
     return () => controller.abort()
-  }, [cache, month, monthKey, mutate, timeZone, year])
+  }, [cache, month, mutate, prefetchKey, timeZone, year])
 }
