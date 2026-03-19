@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { Check, Copy, ExternalLink, Mail } from "lucide-react"
 
-type EmailDraftData = {
+export type EmailDraftData = {
   to: string[]
   subject: string
   body: string

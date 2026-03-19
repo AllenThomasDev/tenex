@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { format, isToday, parseISO } from "date-fns"
+import { format, isPast, isToday, parseISO, startOfDay } from "date-fns"
 import { CalendarRange, CheckCircle2, CircleDot, Clock3, MapPin, Users } from "lucide-react"
 import useSWR from "swr"
 
@@ -62,6 +62,11 @@ function getEventTimeLabel(event: DayEvent) {
 }
 
 type EventTimingState = "past" | "current" | "upcoming" | null
+
+type TimedDayEvent = {
+  event: DayEvent
+  timingState: EventTimingState
+}
 
 function getEventTimingState(event: DayEvent, now: Date, shouldCompare: boolean): EventTimingState {
   if (!shouldCompare || event.isAllDay || !event.start || !event.end) {
@@ -143,7 +148,7 @@ function DenseEventCard({
   onSelect?: () => void
 }) {
   const hasDetails = Boolean(event.location) || event.attendeesCount > 0
-  const timingLabel = timingState === "past" ? "Passed" : timingState === "current" ? "Now" : null
+  const timingLabel = timingState === "past" ? "Done" : timingState === "current" ? "Now" : null
   const surfaceClassName = cn(
     "bg-card",
     timingState === "current" && "bg-primary/[0.03]",
@@ -263,27 +268,35 @@ export function DayEvents({ date, dayKey, selectedEventId, onSelectEvent }: DayE
   const showSkeleton = !events && isLoading
   const [now, setNow] = React.useState(() => new Date())
   const isViewingToday = isToday(date)
+  const isViewingPastDay = !isViewingToday && isPast(startOfDay(date))
+  const shouldShowTiming = isViewingToday || isViewingPastDay
+  const timedEvents = React.useMemo<TimedDayEvent[]>(() => {
+    if (!events) return []
+
+    return events.map((event) => ({
+      event,
+      timingState: getEventTimingState(event, now, shouldShowTiming),
+    }))
+  }, [events, now, shouldShowTiming])
   const orderedEvents = React.useMemo(() => {
-    if (!events) return events
-    if (!isViewingToday) return events
+    if (!shouldShowTiming) return timedEvents
 
-    const upcomingOrCurrent: DayEvent[] = []
-    const past: DayEvent[] = []
+    const upcomingOrCurrent: TimedDayEvent[] = []
+    const past: TimedDayEvent[] = []
 
-    for (const event of events) {
-      const timingState = getEventTimingState(event, now, true)
-
+    for (const timedEvent of timedEvents) {
+      const { timingState } = timedEvent
       if (timingState === "past") {
-        past.push(event)
+        past.push(timedEvent)
       } else {
-        upcomingOrCurrent.push(event)
+        upcomingOrCurrent.push(timedEvent)
       }
     }
 
     return [...upcomingOrCurrent, ...past]
-  }, [events, isViewingToday, now])
+  }, [shouldShowTiming, timedEvents])
   const eventSummary = React.useMemo(() => {
-    if (!events?.length) {
+    if (timedEvents.length === 0) {
       return {
         total: 0,
         past: 0,
@@ -296,9 +309,7 @@ export function DayEvents({ date, dayKey, selectedEventId, onSelectEvent }: DayE
     let currentCount = 0
     let upcomingCount = 0
 
-    for (const event of events) {
-      const timingState = getEventTimingState(event, now, isViewingToday)
-
+    for (const { timingState } of timedEvents) {
       if (timingState === "past") {
         pastCount += 1
       } else if (timingState === "current") {
@@ -309,12 +320,12 @@ export function DayEvents({ date, dayKey, selectedEventId, onSelectEvent }: DayE
     }
 
     return {
-      total: events.length,
+      total: timedEvents.length,
       past: pastCount,
       current: currentCount,
       upcoming: upcomingCount,
     }
-  }, [events, isViewingToday, now])
+  }, [timedEvents])
 
   React.useEffect(() => {
     if (!isViewingToday) return
@@ -369,7 +380,7 @@ export function DayEvents({ date, dayKey, selectedEventId, onSelectEvent }: DayE
                 <span>Next</span>
               </span>
             </>
-          ) : (
+          ) : isViewingPastDay ? null : (
             <span className="text-sm normal-case tracking-normal text-muted-foreground [font-family:var(--font-sans)]">
               {showSkeleton ? "" : `${eventSummary.total} planned`}
             </span>
@@ -409,14 +420,14 @@ export function DayEvents({ date, dayKey, selectedEventId, onSelectEvent }: DayE
 
       {!showSkeleton && !error && orderedEvents && orderedEvents.length > 0 ? (
         <div className="space-y-3">
-          {orderedEvents.map((event, index) => {
+          {orderedEvents.map(({ event, timingState }, index) => {
             return (
               <DenseEventCard
                 key={event.id ?? `${event.title}-${event.start ?? index}`}
                 event={event}
                 index={index}
                 isSelected={Boolean(event.id && event.id === selectedEventId)}
-                timingState={getEventTimingState(event, now, isViewingToday)}
+                timingState={timingState}
                 onSelect={onSelectEvent ? () => onSelectEvent(event.id ?? null) : undefined}
               />
             )

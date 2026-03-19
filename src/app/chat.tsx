@@ -6,9 +6,11 @@ import { useSWRConfig } from "swr";
 
 import { useChatPanel } from "@/components/chat-provider";
 import { ChatEventList } from "@/components/chat-event-list";
-import { ChatFreeBusy } from "@/components/chat-freebusy";
-import { ChatEmailDraft } from "@/components/chat-email-draft";
+import { ChatFreeBusy, type FreeBusyData } from "@/components/chat-freebusy";
+import { ChatEmailDraft, type EmailDraftData } from "@/components/chat-email-draft";
+import { ChatContactResults } from "@/components/chat-contact-results";
 import { assistant } from "@/lib/assistant";
+import type { ContactSearchResponse } from "@/lib/tools/google-contacts";
 
 import {
   Conversation,
@@ -52,7 +54,6 @@ function renderToolMessage(
   if (toolName === "createEvent") return "Created calendar event.";
   if (toolName === "updateEvent") return "Updated calendar event.";
   if (toolName === "deleteEvent") return "Deleted calendar event.";
-
   if (Array.isArray(part.output)) {
     return `Fetched ${part.output.length} event${part.output.length !== 1 ? "s" : ""}`;
   }
@@ -143,7 +144,7 @@ export function Chat({ dayKey }: ChatProps) {
                   if (part.type === "tool-displayFreeBusy") {
                     if (part.state === "output-available" && part.output) {
                       return (
-                        <ChatFreeBusy key={i} data={part.output as any} />
+                        <ChatFreeBusy key={i} data={part.output as FreeBusyData} />
                       );
                     }
                     return (
@@ -158,7 +159,7 @@ export function Chat({ dayKey }: ChatProps) {
                   if (part.type === "tool-displayEmailDraft") {
                     if (part.state === "output-available" && part.output) {
                       return (
-                        <ChatEmailDraft key={i} draft={part.output as any} />
+                        <ChatEmailDraft key={i} draft={part.output as EmailDraftData} />
                       );
                     }
                     return (
@@ -167,6 +168,21 @@ export function Chat({ dayKey }: ChatProps) {
                         className="text-sm italic text-muted-foreground"
                       >
                         Drafting email…
+                      </p>
+                    );
+                  }
+                  if (part.type === "tool-displayContacts") {
+                    if (part.state === "output-available" && part.output) {
+                      return (
+                        <ChatContactResults key={i} data={part.output as ContactSearchResponse} />
+                      );
+                    }
+                    return (
+                      <p
+                        key={i}
+                        className="text-sm italic text-muted-foreground"
+                      >
+                        Looking up contacts...
                       </p>
                     );
                   }

@@ -15,7 +15,7 @@ import { Clock } from "lucide-react"
 
 type BusySlot = { start: string; end: string }
 
-type FreeBusyData = {
+export type FreeBusyData = {
   timeMin: string
   timeMax: string
   timeZone?: string
