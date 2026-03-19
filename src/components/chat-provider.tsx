@@ -100,12 +100,14 @@ export function ChatPanelProvider({ dayKey, children }: { dayKey?: string | null
   const closeChat = useCallback(() => {
     setState(prev => ({ ...prev, isOpen: false }))
     isOpenRef.current = false
+    setSelectedEventIds(prev => prev.length > 1 ? [prev[0]] : prev)
   }, [])
 
   const toggleChat = useCallback(() => {
     setState(prev => {
       const next = !prev.isOpen
       isOpenRef.current = next
+      if (!next) setSelectedEventIds(ids => ids.length > 1 ? [ids[0]] : ids)
       return { ...prev, isOpen: next }
     })
   }, [])
