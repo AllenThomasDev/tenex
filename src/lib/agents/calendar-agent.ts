@@ -17,13 +17,13 @@ import { createDisplayEmailDraftTool } from "../tools/display-email-draft";
 import { createDisplayContactsTool } from "../tools/display-contacts";
 import { createListColorsTool } from "../tools/list-colors";
 
-const primeIntellect = createOpenAICompatible({
-  name: "prime-intellect",
-  apiKey: process.env.PRIME_INTELLECT_API_KEY,
-  baseURL: "https://api.pinference.ai/api/v1",
+const provider = createOpenAICompatible({
+  name: "llm-provider",
+  apiKey: process.env.LLM_API_KEY,
+  baseURL: process.env.LLM_BASE_URL!,
 });
 
-const baseModel = primeIntellect("openai/gpt-5.4");
+const baseModel = provider(process.env.LLM_MODEL!);
 
 export const calendarAgent = new ToolLoopAgent({
   model: wrapLanguageModel({

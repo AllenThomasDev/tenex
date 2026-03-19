@@ -3,10 +3,10 @@ import { generateText } from "ai";
 import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
 
 const classifierModel = createOpenAICompatible({
-  name: "prime-intellect",
-  apiKey: process.env.PRIME_INTELLECT_API_KEY,
-  baseURL: "https://api.pinference.ai/api/v1",
-})("google/gemini-3-flash-preview");
+  name: "llm-provider",
+  apiKey: process.env.LLM_API_KEY,
+  baseURL: process.env.LLM_BASE_URL!,
+})(process.env.LLM_GUARDRAIL_MODEL!);
 
 function getLastUserMessageText(
   prompt: Parameters<

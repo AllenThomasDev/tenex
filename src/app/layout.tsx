@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Tenex",
+  title: "allen-dar",
   description:
     "AI-powered calendar assistant for planning, scheduling, and managing Google Calendar.",
 };

@@ -37,6 +37,16 @@ export default async function Home() {
               Sign in with Google
             </Button>
           </form>
+          <div className="max-w-sm rounded-lg border border-border bg-muted/50 px-4 py-3 text-left text-xs text-muted-foreground">
+            <p className="mb-1 font-medium text-foreground">Heads up</p>
+            <p>
+              Google will show an &ldquo;unverified app&rdquo; warning during sign-in.
+              Click <span className="font-medium text-foreground">Advanced</span> &rarr;{" "}
+              <span className="font-medium text-foreground">Go to tenex-lac.vercel.app</span> to
+              continue. This app only reads and writes to your calendar — no data is stored beyond
+              your session.
+            </p>
+          </div>
         </>
       </main>
     </div>

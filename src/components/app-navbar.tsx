@@ -56,7 +56,7 @@ export function AppNavbar({ user }: AppNavbarProps) {
         <div className="flex items-center gap-1.5">
           <CalendarDays className="h-3.5 w-3.5 text-foreground/60" />
           <span className="text-sm font-medium tracking-tight text-foreground">
-            tenex
+            allen-dar
           </span>
         </div>
 
