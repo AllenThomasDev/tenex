@@ -1,9 +1,15 @@
 import { tool } from "ai";
 import { z } from "zod";
+import { getAffectedDayKeysForEvent } from "@/lib/calendar-day";
 import { createCalendarClient } from "./google-calendar";
 import { parseTimeInput } from "./parse-time-input";
 
-export function createUpdateEventTool(accessToken: string) {
+function normalizeOptionalString(value: string | null | undefined) {
+  const trimmed = value?.trim()
+  return trimmed ? trimmed : null
+}
+
+export function createUpdateEventTool(accessToken: string, userTimeZone: string) {
   return tool({
     description:
       "Update an existing calendar event. Only provide fields you want to change.",
@@ -90,13 +96,14 @@ export function createUpdateEventTool(accessToken: string) {
       sendUpdates,
     }) => {
       const calendar = createCalendarClient(accessToken);
+      const existing = await calendar.events.get({ calendarId, eventId });
 
       const requestBody: Record<string, unknown> = {};
       if (summary != null) requestBody.summary = summary;
       if (description != null) requestBody.description = description;
       if (location != null) requestBody.location = location;
       if (attendees != null) requestBody.attendees = attendees;
-      if (colorId != null) requestBody.colorId = colorId;
+      if (colorId != null) requestBody.colorId = normalizeOptionalString(colorId);
       if (reminders != null) requestBody.reminders = reminders;
       if (recurrence != null) requestBody.recurrence = recurrence;
       if (visibility != null) requestBody.visibility = visibility;
@@ -119,6 +126,12 @@ export function createUpdateEventTool(accessToken: string) {
           end: response.data.end?.dateTime ?? response.data.end?.date,
           htmlLink: response.data.htmlLink,
           status: response.data.status,
+          affectedDayKeys: Array.from(
+            new Set([
+              ...getAffectedDayKeysForEvent(existing.data, userTimeZone),
+              ...getAffectedDayKeysForEvent(response.data, userTimeZone),
+            ]),
+          ),
         };
       } catch (error: unknown) {
         const message =

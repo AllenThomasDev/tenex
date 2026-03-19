@@ -1,8 +1,9 @@
 import { tool } from "ai";
 import { z } from "zod";
+import { getAffectedDayKeysForEvent } from "@/lib/calendar-day";
 import { createCalendarClient } from "./google-calendar";
 
-export function createRespondToEventTool(accessToken: string) {
+export function createRespondToEventTool(accessToken: string, userTimeZone: string) {
   return tool({
     description:
       "Respond to a calendar event invitation with Accept, Decline, Maybe, or No Response.",
@@ -44,6 +45,7 @@ export function createRespondToEventTool(accessToken: string) {
         summary: result.data.summary,
         responseStatus: response,
         status: result.data.status,
+        affectedDayKeys: getAffectedDayKeysForEvent(existing.data, userTimeZone),
       };
     },
   });

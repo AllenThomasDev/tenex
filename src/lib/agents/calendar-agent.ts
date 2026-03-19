@@ -33,6 +33,8 @@ export const calendarAgent = new ToolLoopAgent({
   callOptionsSchema: z.object({
     accessToken: z.string(),
     timezone: z.string(),
+    userName: z.string().optional(),
+    userEmail: z.string().optional(),
   }),
   prepareCall: ({ options, ...settings }) => ({
     ...settings,
@@ -60,10 +62,10 @@ When creating or modifying events, confirm the details with the user before proc
       listEvents: createListEventsTool(options.accessToken),
       getEvent: createGetEventTool(options.accessToken),
       searchEvents: createSearchEventsTool(options.accessToken),
-      createEvent: createCreateEventTool(options.accessToken),
-      updateEvent: createUpdateEventTool(options.accessToken),
-      deleteEvent: createDeleteEventTool(options.accessToken),
-      respondToEvent: createRespondToEventTool(options.accessToken),
+      createEvent: createCreateEventTool(options.accessToken, options.timezone),
+      updateEvent: createUpdateEventTool(options.accessToken, options.timezone),
+      deleteEvent: createDeleteEventTool(options.accessToken, options.timezone),
+      respondToEvent: createRespondToEventTool(options.accessToken, options.timezone),
       getFreeBusy: createGetFreeBusyTool(options.accessToken),
       displayEvents: createDisplayEventsTool(options.accessToken),
       displayFreeBusy: createDisplayFreeBusyTool(options.accessToken),

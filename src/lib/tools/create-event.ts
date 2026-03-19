@@ -1,9 +1,15 @@
 import { tool } from "ai";
 import { z } from "zod";
+import { getAffectedDayKeysForEvent } from "@/lib/calendar-day";
 import { createCalendarClient } from "./google-calendar";
 import { parseTimeInput } from "./parse-time-input";
 
-export function createCreateEventTool(accessToken: string) {
+function normalizeOptionalString(value: string | undefined) {
+  const trimmed = value?.trim()
+  return trimmed ? trimmed : undefined
+}
+
+export function createCreateEventTool(accessToken: string, userTimeZone: string) {
   return tool({
     description: "Create a new calendar event.",
     inputSchema: z.object({
@@ -100,7 +106,7 @@ export function createCreateEventTool(accessToken: string) {
             attendees,
             recurrence,
             reminders,
-            colorId,
+            colorId: normalizeOptionalString(colorId),
             visibility,
             transparency,
           },
@@ -114,6 +120,7 @@ export function createCreateEventTool(accessToken: string) {
           end: response.data.end?.dateTime ?? response.data.end?.date,
           htmlLink: response.data.htmlLink,
           status: response.data.status,
+          affectedDayKeys: getAffectedDayKeysForEvent(response.data, userTimeZone),
         };
       } catch (error: unknown) {
         const message =

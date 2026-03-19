@@ -43,6 +43,8 @@ import {
   PromptInputTextarea,
   PromptInputSubmit,
 } from "@/components/ai-elements/prompt-input";
+import { Shimmer } from "@/components/ai-elements/shimmer";
+import { getStatusBadge } from "@/components/ai-elements/tool";
 
 type ChatProps = {
   dayKey?: string | null;
@@ -52,7 +54,23 @@ const DAY_MUTATION_TOOLS = new Set([
   "createEvent",
   "updateEvent",
   "deleteEvent",
+  "respondToEvent",
 ]);
+
+function getAffectedDayKeys(output: unknown) {
+  if (
+    output &&
+    typeof output === "object" &&
+    "affectedDayKeys" in output &&
+    Array.isArray((output as { affectedDayKeys?: unknown }).affectedDayKeys)
+  ) {
+    return (output as { affectedDayKeys: unknown[] }).affectedDayKeys.filter(
+      (key): key is string => typeof key === "string" && key.length > 0,
+    );
+  }
+
+  return [];
+}
 
 function formatEventTime(dateString?: string) {
   if (!dateString) return ""
@@ -85,27 +103,18 @@ function getReferredEvents(metadata?: ChatMessageMetadata): ReferredCalendarEven
   return Array.isArray(metadata?.referredEvents) ? metadata.referredEvents : []
 }
 
-function renderToolMessage(
-  part: Parameters<typeof getToolName>[0] & {
-    state: string;
-    output?: unknown;
-  }
-) {
-  const toolName = getToolName(part);
-
-  if (part.state !== "output-available") {
-    return "Loading calendar events…";
-  }
-
-  if (toolName === "createEvent") return "Created calendar event.";
-  if (toolName === "updateEvent") return "Updated calendar event.";
-  if (toolName === "deleteEvent") return "Deleted calendar event.";
-  if (Array.isArray(part.output)) {
-    return `Fetched ${part.output.length} event${part.output.length !== 1 ? "s" : ""}`;
-  }
-
-  return "Calendar action completed.";
-}
+const TOOL_TITLES: Record<string, string> = {
+  listCalendars: "List calendars",
+  listEvents: "List events",
+  getEvent: "Get event",
+  searchEvents: "Search events",
+  createEvent: "Create event",
+  updateEvent: "Update event",
+  deleteEvent: "Delete event",
+  respondToEvent: "Respond to event",
+  getFreeBusy: "Check availability",
+  listColors: "List colors",
+};
 
 export function Chat({ dayKey }: ChatProps) {
   const { chat, selectedEventIds, toggleEventId, clearSelectedEvents } = useChatPanel();
@@ -142,11 +151,8 @@ export function Chat({ dayKey }: ChatProps) {
     [dayEvents],
   );
 
-  // Refresh the day's events after any calendar mutation tool completes
   useEffect(() => {
-    if (!dayKey) return;
-
-    let shouldRefreshDay = false;
+    const dayKeysToRefresh = new Set<string>();
 
     for (const message of messages) {
       for (const part of message.parts) {
@@ -157,14 +163,18 @@ export function Chat({ dayKey }: ChatProps) {
         if (refreshedToolCallIdsRef.current.has(part.toolCallId)) continue;
 
         refreshedToolCallIdsRef.current.add(part.toolCallId);
-        shouldRefreshDay = true;
+        for (const affectedDayKey of getAffectedDayKeys(part.output)) {
+          dayKeysToRefresh.add(affectedDayKey);
+        }
       }
     }
 
-    if (shouldRefreshDay) {
-      void mutate(dayKey);
+    if (dayKeysToRefresh.size > 0) {
+      void Promise.all(
+        Array.from(dayKeysToRefresh, (affectedDayKey) => mutate(affectedDayKey)),
+      );
     }
-  }, [dayKey, messages, mutate]);
+  }, [messages, mutate]);
 
   const handleClearChat = useCallback(() => {
     setMessages([]);
@@ -237,83 +247,50 @@ export function Chat({ dayKey }: ChatProps) {
                       </MessageResponse>
                     );
                   }
-                  if (isToolUIPart(part) && getToolName(part) === "displayEvents") {
-                    if (
-                      part.state === "output-available" &&
-                      Array.isArray(part.output)
-                    ) {
+                  if (!isToolUIPart(part)) return null;
+
+                  const toolName = getToolName(part);
+                  const isComplete = part.state === "output-available";
+
+                  // Display tools — render custom UI when complete
+                  if (toolName === "displayEvents") {
+                    if (isComplete && Array.isArray(part.output)) {
                       return <ChatEventList key={i} events={part.output} />;
                     }
-                    return (
-                      <p
-                        key={i}
-                        className="text-sm italic text-muted-foreground"
-                      >
-                        Loading your events…
-                      </p>
-                    );
-                  }
-                  if (isToolUIPart(part) && getToolName(part) === "displayFreeBusy") {
-                    if (part.state === "output-available" && part.output) {
-                      return (
-                        <ChatFreeBusy key={i} data={part.output as FreeBusyData} />
-                      );
+                  } else if (toolName === "displayFreeBusy") {
+                    if (isComplete && part.output) {
+                      return <ChatFreeBusy key={i} data={part.output as FreeBusyData} />;
                     }
-                    return (
-                      <p
-                        key={i}
-                        className="text-sm italic text-muted-foreground"
-                      >
-                        Checking availability…
-                      </p>
-                    );
-                  }
-                  if (isToolUIPart(part) && getToolName(part) === "displayEmailDraft") {
-                    if (part.state === "output-available" && part.output) {
-                      return (
-                        <ChatEmailDraft key={i} draft={part.output as EmailDraftData} />
-                      );
+                  } else if (toolName === "displayEmailDraft") {
+                    if (isComplete && part.output) {
+                      return <ChatEmailDraft key={i} draft={part.output as EmailDraftData} />;
                     }
-                    return (
-                      <p
-                        key={i}
-                        className="text-sm italic text-muted-foreground"
-                      >
-                        Drafting email…
-                      </p>
-                    );
-                  }
-                  if (isToolUIPart(part) && getToolName(part) === "displayContacts") {
-                    if (part.state === "output-available" && part.output) {
-                      return (
-                        <ChatContactResults key={i} data={part.output as ContactSearchResponse} />
-                      );
+                  } else if (toolName === "displayContacts") {
+                    if (isComplete && part.output) {
+                      return <ChatContactResults key={i} data={part.output as ContactSearchResponse} />;
                     }
-                    return (
-                      <p
-                        key={i}
-                        className="text-sm italic text-muted-foreground"
-                      >
-                        Looking up contacts...
-                      </p>
-                    );
                   }
-                  if (isToolUIPart(part)) {
-                    return (
-                      <p
-                        key={i}
-                        className="text-sm italic text-muted-foreground"
-                      >
-                        {renderToolMessage(part)}
-                      </p>
-                    );
-                  }
-                  return null;
+
+                  // All tools (including display tools while loading)
+                  return (
+                    <div key={i} className="flex items-center gap-2 rounded-md border p-2.5">
+                      <span className="text-sm font-medium">{TOOL_TITLES[toolName] ?? toolName}</span>
+                      {getStatusBadge(part.state)}
+                    </div>
+                  );
                 })}
               </MessageContent>
             </Message>
             );
           })}
+
+          {status === "submitted" && (
+            <Message from="assistant">
+              <MessageContent>
+                <Shimmer className="text-sm text-muted-foreground">Thinking…</Shimmer>
+              </MessageContent>
+            </Message>
+          )}
         </ConversationContent>
         <ConversationScrollButton />
       </Conversation>

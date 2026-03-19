@@ -83,6 +83,8 @@ export async function POST(req: Request) {
     options: {
       accessToken,
       timezone: timezone ?? "America/Chicago",
+      userName: session.user.name ?? undefined,
+      userEmail: session.user.email,
     },
   });
 }

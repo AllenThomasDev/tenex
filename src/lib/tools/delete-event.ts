@@ -1,8 +1,9 @@
 import { tool } from "ai";
 import { z } from "zod";
+import { getAffectedDayKeysForEvent } from "@/lib/calendar-day";
 import { createCalendarClient } from "./google-calendar";
 
-export function createDeleteEventTool(accessToken: string) {
+export function createDeleteEventTool(accessToken: string, userTimeZone: string) {
   return tool({
     description: "Delete a calendar event.",
     inputSchema: z.object({
@@ -18,6 +19,7 @@ export function createDeleteEventTool(accessToken: string) {
     }),
     execute: async ({ calendarId, eventId, sendUpdates }) => {
       const calendar = createCalendarClient(accessToken);
+      const existing = await calendar.events.get({ calendarId, eventId });
 
       await calendar.events.delete({
         calendarId,
@@ -25,7 +27,11 @@ export function createDeleteEventTool(accessToken: string) {
         sendUpdates,
       });
 
-      return { deleted: true, eventId };
+      return {
+        deleted: true,
+        eventId,
+        affectedDayKeys: getAffectedDayKeysForEvent(existing.data, userTimeZone),
+      };
     },
   });
 }

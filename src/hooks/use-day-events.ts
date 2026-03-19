@@ -62,7 +62,7 @@ function getEventTimingState(event: DayEvent, now: Date, shouldCompare: boolean)
 }
 
 export async function fetchDayEvents(url: string): Promise<DayEvent[]> {
-  const response = await fetch(url)
+  const response = await fetch(url, { cache: "no-store" })
 
   if (!response.ok) {
     const data = (await response.json().catch(() => null)) as {
