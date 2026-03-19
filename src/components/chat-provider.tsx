@@ -24,6 +24,7 @@ interface ChatPanelContextValue {
   state: ChatPanelState
   selectedEventIds: string[]
   toggleEventId: (id: string) => void
+  focusEventId: (id: string) => void
   clearSelectedEvents: () => void
   openChat: () => void
   closeChat: () => void
@@ -76,6 +77,17 @@ export function ChatPanelProvider({ dayKey, children }: { dayKey?: string | null
     })
   }, [])
 
+  const focusEventId = useCallback((id: string) => {
+    setSelectedEventIds((prev) => {
+      if (isOpenRef.current) {
+        // Chat open: don't change selections, just let focus highlight move
+        return prev
+      }
+      // Chat closed: single select
+      return [id]
+    })
+  }, [])
+
   const clearSelectedEvents = useCallback(() => {
     setSelectedEventIds([])
   }, [])
@@ -117,6 +129,7 @@ export function ChatPanelProvider({ dayKey, children }: { dayKey?: string | null
         state,
         selectedEventIds,
         toggleEventId,
+        focusEventId,
         clearSelectedEvents,
         openChat,
         closeChat,

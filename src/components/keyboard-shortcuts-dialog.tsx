@@ -17,6 +17,10 @@ const shortcutGroups = [
     shortcuts: [
       { keys: ["h"], description: "Previous day" },
       { keys: ["l"], description: "Next day" },
+      { keys: ["j"], description: "Next event" },
+      { keys: ["k"], description: "Previous event" },
+      { keys: ["Enter"], description: "Toggle event reference" },
+      { keys: ["Esc"], description: "Clear event focus" },
       { keys: [mod + "K"], description: "Command menu" },
     ],
   },

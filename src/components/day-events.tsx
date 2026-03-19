@@ -81,6 +81,7 @@ function DenseEventCard({
   event,
   index,
   isSelected,
+  isFocused,
   isInChatContext,
   timingState,
   onSelect,
@@ -88,19 +89,28 @@ function DenseEventCard({
   event: DayEvent
   index: number
   isSelected?: boolean
+  isFocused?: boolean
   isInChatContext?: boolean
   timingState?: EventTimingState
   onSelect?: () => void
 }) {
+  const cardRef = React.useRef<HTMLDivElement>(null)
   const hasDetails = Boolean(event.location) || event.attendeesCount > 0
+
+  React.useEffect(() => {
+    if (isFocused && cardRef.current) {
+      cardRef.current.scrollIntoView({ block: "nearest", behavior: "smooth" })
+    }
+  }, [isFocused])
   const timingLabel = timingState === "past" ? "Done" : timingState === "current" ? "Now" : null
   const surfaceClassName = cn(
     "bg-card transition-colors group-hover:bg-muted/50",
+    isFocused && "bg-muted/50",
     timingState === "current" && "bg-primary/[0.03]",
   )
 
   return (
-    <div className="relative">
+    <div ref={cardRef} className="relative">
       <article
         className={cn(
           "group flex min-w-0 border border-border bg-card text-card-foreground transition-colors",
@@ -197,7 +207,7 @@ function DayEventsSkeleton() {
 }
 
 export function DayEvents({ date, dayKey }: DayEventsProps) {
-  const { selectedEventIds, toggleEventId, state: chatState } = useChatPanel()
+  const { selectedEventIds, toggleEventId, focusEventId, state: chatState } = useChatPanel()
   const {
     events,
     orderedEvents,
@@ -209,6 +219,45 @@ export function DayEvents({ date, dayKey }: DayEventsProps) {
     isViewingPastDay,
   } = useDayEvents(date, dayKey)
   const showSkeleton = !events && isLoading
+  const [focusedIndex, setFocusedIndex] = React.useState<number | null>(null)
+  const eventCount = orderedEvents?.length ?? 0
+
+  // Reset focus when day changes
+  React.useEffect(() => {
+    setFocusedIndex(null)
+  }, [dayKey])
+
+  React.useEffect(() => {
+    function onKeyDown(e: KeyboardEvent) {
+      const tag = (e.target as HTMLElement)?.tagName
+      if (tag === "INPUT" || tag === "TEXTAREA" || (e.target as HTMLElement)?.isContentEditable) return
+      if (eventCount === 0) return
+
+      if (e.key === "j") {
+        e.preventDefault()
+        const next = focusedIndex === null ? 0 : Math.min(focusedIndex + 1, eventCount - 1)
+        setFocusedIndex(next)
+        const event = orderedEvents?.[next]?.event
+        if (event?.id) focusEventId(event.id)
+      } else if (e.key === "k") {
+        e.preventDefault()
+        const next = focusedIndex === null ? 0 : Math.max(focusedIndex - 1, 0)
+        setFocusedIndex(next)
+        const event = orderedEvents?.[next]?.event
+        if (event?.id) focusEventId(event.id)
+      } else if (e.key === "Enter" && focusedIndex !== null) {
+        e.preventDefault()
+        const event = orderedEvents?.[focusedIndex]?.event
+        if (event?.id) toggleEventId(event.id)
+      } else if (e.key === "Escape" && focusedIndex !== null) {
+        e.preventDefault()
+        setFocusedIndex(null)
+      }
+    }
+
+    window.addEventListener("keydown", onKeyDown)
+    return () => window.removeEventListener("keydown", onKeyDown)
+  }, [eventCount, focusedIndex, focusEventId, orderedEvents, toggleEventId])
 
   return (
     <section aria-labelledby="events-heading" className="space-y-4">
@@ -288,7 +337,7 @@ export function DayEvents({ date, dayKey }: DayEventsProps) {
       ) : null}
 
       {!showSkeleton && !error && orderedEvents && orderedEvents.length > 0 ? (
-        <div className="space-y-3">
+        <div className="space-y-3" onMouseMove={focusedIndex !== null ? () => setFocusedIndex(null) : undefined}>
           {orderedEvents.map(({ event, timingState }, index) => {
             return (
               <DenseEventCard
@@ -296,9 +345,10 @@ export function DayEvents({ date, dayKey }: DayEventsProps) {
                 event={event}
                 index={index}
                 isSelected={Boolean(event.id && (chatState.isOpen ? selectedEventIds.includes(event.id) : selectedEventIds[0] === event.id))}
+                isFocused={focusedIndex === index}
                 isInChatContext={chatState.isOpen && Boolean(event.id && selectedEventIds.includes(event.id))}
                 timingState={timingState}
-                onSelect={event.id ? () => toggleEventId(event.id!) : undefined}
+                onSelect={event.id ? () => { setFocusedIndex(null); toggleEventId(event.id!) } : undefined}
               />
             )
           })}
