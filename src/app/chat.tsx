@@ -191,7 +191,7 @@ export function Chat({ dayKey }: ChatProps) {
         </button>
       </div>
       <Conversation className="flex-1">
-        <ConversationContent className="gap-3 p-4">
+        <ConversationContent scrollClassName="no-scrollbar" className="gap-3 p-4">
           {messages.length === 0 && (
             <ConversationEmptyState
               icon={
