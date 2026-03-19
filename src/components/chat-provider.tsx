@@ -13,14 +13,15 @@ import {
   type ReactNode,
 } from "react"
 
+import type { CalendarChatMessage } from "@/lib/chat-message"
+
 interface ChatPanelState {
   isOpen: boolean
 }
 
 interface ChatPanelContextValue {
-  chat: ReturnType<typeof useChat>
+  chat: ReturnType<typeof useChat<CalendarChatMessage>>
   state: ChatPanelState
-  dayKeyRef: React.RefObject<string | null>
   openChat: () => void
   closeChat: () => void
   toggleChat: () => void
@@ -35,21 +36,18 @@ export function useChatPanel() {
 }
 
 export function ChatPanelProvider({ dayKey, children }: { dayKey?: string | null; children: ReactNode }) {
-  const dayKeyRef = useRef<string | null>(dayKey ?? null)
-  dayKeyRef.current = dayKey ?? null
-
   const transport = useMemo(
     () =>
-      new DefaultChatTransport({
+      new DefaultChatTransport<CalendarChatMessage>({
         api: "/api/chat",
         body: () => ({
           timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-          dayKey: dayKeyRef.current,
+          dayKey,
         }),
       }),
-    [],
+    [dayKey],
   )
-  const chat = useChat({ transport })
+  const chat = useChat<CalendarChatMessage>({ transport })
   const [state, setState] = useState<ChatPanelState>({ isOpen: false })
   const isOpenRef = useRef(false)
 
@@ -84,7 +82,7 @@ export function ChatPanelProvider({ dayKey, children }: { dayKey?: string | null
   }, [toggleChat])
 
   return (
-    <ChatPanelContext.Provider value={{ chat, state, dayKeyRef, openChat, closeChat, toggleChat }}>
+    <ChatPanelContext.Provider value={{ chat, state, openChat, closeChat, toggleChat }}>
       {children}
     </ChatPanelContext.Provider>
   )
