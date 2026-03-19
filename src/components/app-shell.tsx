@@ -5,8 +5,9 @@ import { addDays, differenceInCalendarDays, format, isSameDay, subDays } from "d
 import { ChevronLeft, ChevronRight } from "lucide-react"
 
 import { AppSidebar } from "@/components/app-sidebar"
-import { DayEvents } from "@/components/day-events"
+import { DayEvents, DayEventsHeader } from "@/components/day-events"
 import { EventSidebarPanel } from "@/components/event-sidebar"
+import { ScrollArea } from "@/components/ui/scroll-area"
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
 import { ChatPanelProvider, useChatPanel } from "@/components/chat-provider"
 import { ChatPanel } from "@/components/chat-panel"
@@ -152,18 +153,21 @@ function AppShellInner({
         <SidebarInset id="main-content">
           <div className="flex h-full flex-row bg-background">
             {/* Main events column */}
-            <div ref={mainScrollRef} className="no-scrollbar relative flex-1 min-w-0 overflow-y-auto">
+            <ScrollArea viewportRef={mainScrollRef} className="relative flex-1 min-w-0">
               <div
                 aria-hidden="true"
                 className={cn(
-                  "pointer-events-none sticky top-0 z-20 -mb-5 h-5 w-full bg-gradient-to-b from-background via-background/85 to-transparent transition-opacity duration-200",
+                  "pointer-events-none absolute inset-x-0 top-0 z-20 h-5 bg-gradient-to-b from-background via-background/85 to-transparent transition-opacity duration-200",
                   showTopFade ? "opacity-100" : "opacity-0"
                 )}
               />
               <div className="w-full pb-8">
                 {user ? (
                   <div className="flex flex-col gap-8">
-                    <div className="sticky top-0 z-10 bg-background/95 px-6 pt-8 pb-4 backdrop-blur supports-[backdrop-filter]:bg-background/80">
+                    <div
+                      data-events-sticky-header
+                      className="sticky top-0 z-10 bg-background/95 px-6 pt-8 pb-4 backdrop-blur supports-[backdrop-filter]:bg-background/80"
+                    >
                       <div className="flex items-end justify-between gap-4">
                         <div
                           key={selectedDate.toISOString()}
@@ -203,6 +207,10 @@ function AppShellInner({
                           </button>
                         </div>
                       </div>
+                      <DayEventsHeader
+                        date={selectedDate}
+                        dayKey={selectedDayKey}
+                      />
                     </div>
                     <div className="px-6">
                       <DayEvents
@@ -216,11 +224,11 @@ function AppShellInner({
               <div
                 aria-hidden="true"
                 className={cn(
-                  "pointer-events-none sticky bottom-0 z-20 -mt-8 h-8 w-full bg-gradient-to-t from-background via-background/90 to-transparent transition-opacity duration-200",
+                  "pointer-events-none absolute inset-x-0 bottom-0 z-20 h-8 bg-gradient-to-t from-background via-background/90 to-transparent transition-opacity duration-200",
                   showBottomFade ? "opacity-100" : "opacity-0"
                 )}
               />
-            </div>
+            </ScrollArea>
             {/* Right column — same width/position as ChatPanel so it sits beneath it */}
             <div className="hidden lg:flex lg:flex-col w-[380px] shrink-0 border-l border-border">
               {user ? (

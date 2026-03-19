@@ -5,6 +5,7 @@ import { format, parseISO } from "date-fns"
 import { CalendarRange, CheckCircle2, CircleDot, Clock3, MapPin, Sparkles, Users } from "lucide-react"
 
 import { useChatPanel } from "@/components/chat-provider"
+import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { cn } from "@/lib/utils"
@@ -15,6 +16,8 @@ type DayEventsProps = {
   date: Date
   dayKey?: string
 }
+
+
 
 function formatTime(dateString?: string) {
   if (!dateString) {
@@ -102,20 +105,18 @@ function DenseEventCard({
       cardRef.current.scrollIntoView({ block: "nearest", behavior: "smooth" })
     }
   }, [isFocused])
-  const timingLabel = timingState === "past" ? "Done" : timingState === "current" ? "Now" : null
+  const timingLabel = timingState === "past" ? "Done" : null
   const surfaceClassName = cn(
     "bg-card transition-colors group-hover:bg-muted/50",
     isFocused && "bg-muted/50",
-    timingState === "current" && "bg-primary/[0.03]",
   )
 
   return (
-    <div ref={cardRef} className="relative">
+    <div ref={cardRef} className="relative scroll-mt-44 scroll-mb-6">
       <article
         className={cn(
           "group flex min-w-0 border border-border bg-card text-card-foreground transition-colors",
           timingState === "past" && "border-dashed opacity-50",
-          timingState === "current" && "border-primary/60 bg-primary/[0.03] shadow-[0_0_0_1px_rgba(0,0,0,0.02)]",
           isInChatContext && "border-primary/70 bg-primary/[0.04] ring-1 ring-primary/20",
           isSelected && "border-primary bg-primary/[0.06] ring-2 ring-primary/50 shadow-sm",
           onSelect && "cursor-pointer",
@@ -133,7 +134,6 @@ function DenseEventCard({
             <div className={cn(surfaceClassName, "px-3 py-2.5")}>
               <div className={cn(
                 "flex min-h-10 items-center text-[11px] font-medium uppercase tracking-[0.22em] text-muted-foreground [font-family:var(--font-geist-mono)]",
-                timingState === "current" && "text-primary",
               )}>
                 {getEventTimeLabel(event)}
               </div>
@@ -148,7 +148,6 @@ function DenseEventCard({
                 {timingLabel ? (
                   <span className={cn(
                     "shrink-0 text-[10px] font-medium uppercase tracking-[0.22em] [font-family:var(--font-geist-mono)]",
-                    timingState === "current" && "text-primary",
                   )}>
                     {timingLabel}
                   </span>
@@ -158,7 +157,6 @@ function DenseEventCard({
             <div className={cn(surfaceClassName, "px-3 py-2.5")}>
               <div className={cn(
                 "flex min-h-10 items-center justify-end text-[11px] font-medium uppercase tracking-[0.22em] text-muted-foreground [font-family:var(--font-geist-mono)] md:text-right",
-                timingState === "current" && "text-primary/80",
               )}>
                 #{String(index + 1).padStart(2, "0")}
               </div>
@@ -171,7 +169,6 @@ function DenseEventCard({
                 event={event}
                 iconClassName={cn(
                   "text-muted-foreground",
-                  timingState === "current" && "text-primary/80",
                 )}
                 textClassName="text-muted-foreground"
                 compact
@@ -180,6 +177,11 @@ function DenseEventCard({
           ) : null}
         </div>
       </article>
+      {timingState === "current" ? (
+        <Badge className="pointer-events-none absolute -top-2 left-3 z-20 rounded-md shadow-sm">
+          Now
+        </Badge>
+      ) : null}
       {isInChatContext ? (
         <div className="pointer-events-none absolute -top-3 -right-3 z-20 flex items-center justify-center rounded-full border border-primary/20 bg-background/95 p-2 text-primary shadow-sm">
           <Sparkles className="size-4" />
@@ -202,6 +204,62 @@ function DayEventsSkeleton() {
           <Skeleton className="mt-4 h-4 w-28" />
         </div>
       ))}
+    </div>
+  )
+}
+
+export function DayEventsHeader({ date, dayKey }: DayEventsProps) {
+  const {
+    events,
+    eventSummary,
+    isLoading,
+    isViewingToday,
+    isViewingPastDay,
+  } = useDayEvents(date, dayKey)
+  const showSkeleton = !events && isLoading
+
+  return (
+    <div className="mt-4 flex flex-wrap items-end justify-between gap-3">
+      <h2 id="events-heading" className="text-xl font-semibold text-foreground">
+        Events
+      </h2>
+      <div aria-live="polite" className="flex flex-wrap items-center gap-2 text-[11px] font-medium uppercase tracking-[0.18em] [font-family:var(--font-geist-mono)]">
+        {isViewingToday ? (
+          <>
+            <span
+              className="rounded-full bg-muted px-2.5 py-1 text-muted-foreground"
+              aria-label={`${eventSummary.past} done`}
+              title={`${eventSummary.past} done`}
+            >
+              <CheckCircle2 className="mr-1 inline size-3" />
+              <span className="mr-1 text-foreground/90">{eventSummary.past}</span>
+              <span>Done</span>
+            </span>
+            <span
+              className="rounded-full bg-primary/10 px-2.5 py-1 text-primary"
+              aria-label={`${eventSummary.current} now`}
+              title={`${eventSummary.current} now`}
+            >
+              <CircleDot className="mr-1 inline size-3" />
+              <span className="mr-1">{eventSummary.current}</span>
+              <span>Now</span>
+            </span>
+            <span
+              className="rounded-full bg-secondary px-2.5 py-1 text-secondary-foreground"
+              aria-label={`${eventSummary.upcoming} upcoming`}
+              title={`${eventSummary.upcoming} upcoming`}
+            >
+              <Clock3 className="mr-1 inline size-3" />
+              <span className="mr-1">{eventSummary.upcoming}</span>
+              <span>Next</span>
+            </span>
+          </>
+        ) : isViewingPastDay ? null : (
+          <span className="text-sm normal-case tracking-normal text-muted-foreground [font-family:var(--font-sans)]">
+            {showSkeleton ? "" : `${eventSummary.total} planned`}
+          </span>
+        )}
+      </div>
     </div>
   )
 }
@@ -245,67 +303,28 @@ export function DayEvents({ date, dayKey }: DayEventsProps) {
         setFocusedIndex(next)
         const event = orderedEvents?.[next]?.event
         if (event?.id) focusEventId(event.id)
-      } else if (e.key === "Enter" && focusedIndex !== null) {
+      } else if (e.key === "Enter" && focusedIndex !== null && chatState.isOpen) {
         e.preventDefault()
         const event = orderedEvents?.[focusedIndex]?.event
         if (event?.id) toggleEventId(event.id)
       } else if (e.key === "Escape" && focusedIndex !== null) {
         e.preventDefault()
         setFocusedIndex(null)
+      } else if (!chatState.isOpen && e.key >= "0" && e.key <= "9") {
+        const idx = Math.min(Math.max(Number(e.key) - 1, 0), eventCount - 1)
+        e.preventDefault()
+        setFocusedIndex(idx)
+        const event = orderedEvents?.[idx]?.event
+        if (event?.id) focusEventId(event.id)
       }
     }
 
     window.addEventListener("keydown", onKeyDown)
     return () => window.removeEventListener("keydown", onKeyDown)
-  }, [eventCount, focusedIndex, focusEventId, orderedEvents, toggleEventId])
+  }, [chatState.isOpen, eventCount, focusedIndex, focusEventId, orderedEvents, toggleEventId])
 
   return (
     <section aria-labelledby="events-heading" className="space-y-4">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h2 id="events-heading" className="text-xl font-semibold text-foreground">
-            Events
-          </h2>
-        </div>
-        <div aria-live="polite" className="flex flex-wrap items-center gap-2 text-[11px] font-medium uppercase tracking-[0.18em] [font-family:var(--font-geist-mono)]">
-          {isViewingToday ? (
-            <>
-              <span
-                className="rounded-full bg-muted px-2.5 py-1 text-muted-foreground"
-                aria-label={`${eventSummary.past} done`}
-                title={`${eventSummary.past} done`}
-              >
-                <CheckCircle2 className="mr-1 inline size-3" />
-                <span className="mr-1 text-foreground/90">{eventSummary.past}</span>
-                <span>Done</span>
-              </span>
-              <span
-                className="rounded-full bg-primary/10 px-2.5 py-1 text-primary"
-                aria-label={`${eventSummary.current} now`}
-                title={`${eventSummary.current} now`}
-              >
-                <CircleDot className="mr-1 inline size-3" />
-                <span className="mr-1">{eventSummary.current}</span>
-                <span>Now</span>
-              </span>
-              <span
-                className="rounded-full bg-secondary px-2.5 py-1 text-secondary-foreground"
-                aria-label={`${eventSummary.upcoming} upcoming`}
-                title={`${eventSummary.upcoming} upcoming`}
-              >
-                <Clock3 className="mr-1 inline size-3" />
-                <span className="mr-1">{eventSummary.upcoming}</span>
-                <span>Next</span>
-              </span>
-            </>
-          ) : isViewingPastDay ? null : (
-            <span className="text-sm normal-case tracking-normal text-muted-foreground [font-family:var(--font-sans)]">
-              {showSkeleton ? "" : `${eventSummary.total} planned`}
-            </span>
-          )}
-        </div>
-      </div>
-
       {showSkeleton ? <DayEventsSkeleton /> : null}
 
       {!showSkeleton && error ? (
