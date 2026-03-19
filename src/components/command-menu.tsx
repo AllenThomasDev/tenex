@@ -3,7 +3,8 @@
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { useTheme } from "next-themes"
-import { addDays, subDays } from "date-fns"
+import { addDays, format, subDays } from "date-fns"
+import { parseDate } from "chrono-node"
 import {
   CalendarDays,
   CalendarCheck,
@@ -117,6 +118,11 @@ function CommandMenuContent({
   const [search, setSearch] = useState("")
   const { theme, setTheme } = useTheme()
   const { isDark, colorTheme } = parseTheme(theme)
+  const trimmedSearch = search.trim()
+  const parsedSearchDate =
+    page === "root" && trimmedSearch
+      ? parseDate(trimmedSearch, new Date(), { forwardDate: true })
+      : null
 
   function handleKeyDown(e: React.KeyboardEvent) {
     if (e.key === "Backspace" && !search && page !== "root") {
@@ -133,10 +139,30 @@ function CommandMenuContent({
         onValueChange={setSearch}
       />
       <CommandList>
-        <CommandEmpty>No results found.</CommandEmpty>
+        <CommandEmpty>
+          {page === "root" && trimmedSearch
+            ? 'Try a date like "December 12" or "next Friday".'
+            : "No results found."}
+        </CommandEmpty>
 
         {page === "root" ? (
           <>
+            {parsedSearchDate ? (
+              <>
+                <CommandGroup heading="Jump to Date">
+                  <CommandItem
+                    value={trimmedSearch}
+                    onSelect={() => onRun(() => onSelectDate(parsedSearchDate))}
+                  >
+                    <CalendarDays />
+                    Go to {format(parsedSearchDate, "EEEE, MMMM d")}
+                  </CommandItem>
+                </CommandGroup>
+
+                <CommandSeparator />
+              </>
+            ) : null}
+
             <CommandGroup heading="Navigate">
               <CommandItem onSelect={() => onRun(() => onSelectDate(new Date()))}>
                 <CalendarCheck />
