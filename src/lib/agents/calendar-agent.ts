@@ -1,6 +1,7 @@
-import { ToolLoopAgent, InferAgentUIMessage } from "ai";
+import { ToolLoopAgent, InferAgentUIMessage, wrapLanguageModel } from "ai";
 import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
 import { z } from "zod";
+import { calendarGuardrailMiddleware } from "../middleware/calendar-guardrail";
 import { createListCalendarsTool } from "../tools/list-calendars";
 import { createListEventsTool } from "../tools/list-events";
 import { createGetEventTool } from "../tools/get-event";
@@ -22,8 +23,13 @@ const primeIntellect = createOpenAICompatible({
   baseURL: "https://api.pinference.ai/api/v1",
 });
 
+const baseModel = primeIntellect("openai/gpt-5.4");
+
 export const calendarAgent = new ToolLoopAgent({
-  model: primeIntellect("openai/gpt-5.4"),
+  model: wrapLanguageModel({
+    model: baseModel,
+    middleware: calendarGuardrailMiddleware,
+  }),
   callOptionsSchema: z.object({
     accessToken: z.string(),
     timezone: z.string(),
