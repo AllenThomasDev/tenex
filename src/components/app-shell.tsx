@@ -7,7 +7,7 @@ import { AppSidebar } from "@/components/app-sidebar"
 import { DayEvents } from "@/components/day-events"
 import { EventSidebarPanel } from "@/components/event-sidebar"
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
-import { ChatPanelProvider } from "@/components/chat-provider"
+import { ChatPanelProvider, useChatPanel } from "@/components/chat-provider"
 import { ChatPanel } from "@/components/chat-panel"
 import { AppNavbar } from "@/components/app-navbar"
 import { CommandMenu } from "@/components/command-menu"
@@ -25,15 +25,34 @@ type AppShellProps = {
 
 export function AppShell({ user }: AppShellProps) {
   const [selectedDate, setSelectedDate] = React.useState<Date>(() => new Date())
-  const [selectedEventId, setSelectedEventId] = React.useState<string | null>(null)
-  const [dateMotion, setDateMotion] = React.useState<"left" | "right">("left")
-  const [showTopFade, setShowTopFade] = React.useState(false)
-  const [showBottomFade, setShowBottomFade] = React.useState(false)
-  const mainScrollRef = React.useRef<HTMLDivElement>(null)
   const selectedDayKey = React.useMemo(
     () => getCalendarDayKey(selectedDate),
     [selectedDate]
   )
+
+  return (
+    <ChatPanelProvider dayKey={selectedDayKey}>
+      <AppShellInner user={user} selectedDate={selectedDate} setSelectedDate={setSelectedDate} selectedDayKey={selectedDayKey} />
+    </ChatPanelProvider>
+  )
+}
+
+function AppShellInner({
+  user,
+  selectedDate,
+  setSelectedDate,
+  selectedDayKey,
+}: {
+  user: AppShellProps["user"]
+  selectedDate: Date
+  setSelectedDate: React.Dispatch<React.SetStateAction<Date>>
+  selectedDayKey: string
+}) {
+  const { selectedEventIds, toggleEventId } = useChatPanel()
+  const [dateMotion, setDateMotion] = React.useState<"left" | "right">("left")
+  const [showTopFade, setShowTopFade] = React.useState(false)
+  const [showBottomFade, setShowBottomFade] = React.useState(false)
+  const mainScrollRef = React.useRef<HTMLDivElement>(null)
 
   useMonthPrefetch(selectedDate)
 
@@ -44,8 +63,6 @@ export function AppShell({ user }: AppShellProps) {
     }
 
     setDateMotion(nextDate > selectedDate ? "right" : "left")
-    setSelectedEventId(null)
-
     setSelectedDate(nextDate)
   }
 
@@ -88,8 +105,10 @@ export function AppShell({ user }: AppShellProps) {
     }
   }, [selectedDate])
 
+  const selectedEventId = selectedEventIds[0] ?? null
+
   return (
-    <ChatPanelProvider dayKey={selectedDayKey}>
+    <>
       <AppNavbar user={user} />
       <div className="flex h-svh flex-col pt-10 overflow-hidden">
       <SidebarProvider className="flex-1 min-h-0">
@@ -139,12 +158,6 @@ export function AppShell({ user }: AppShellProps) {
                       <DayEvents
                         date={selectedDate}
                         dayKey={selectedDayKey}
-                        selectedEventId={selectedEventId}
-                        onSelectEvent={(eventId) => {
-                          setSelectedEventId((currentEventId) =>
-                            currentEventId === eventId ? null : eventId
-                          )
-                        }}
                       />
                     </div>
                   </div>
@@ -175,6 +188,6 @@ export function AppShell({ user }: AppShellProps) {
 
       <CommandMenu onSelectDate={handleSelectDate} />
       <ChatPanel dayKey={selectedDayKey} />
-    </ChatPanelProvider>
+    </>
   )
 }

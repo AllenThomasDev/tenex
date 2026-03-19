@@ -22,6 +22,9 @@ interface ChatPanelState {
 interface ChatPanelContextValue {
   chat: ReturnType<typeof useChat<CalendarChatMessage>>
   state: ChatPanelState
+  selectedEventIds: string[]
+  toggleEventId: (id: string) => void
+  clearSelectedEvents: () => void
   openChat: () => void
   closeChat: () => void
   toggleChat: () => void
@@ -49,7 +52,33 @@ export function ChatPanelProvider({ dayKey, children }: { dayKey?: string | null
   )
   const chat = useChat<CalendarChatMessage>({ transport })
   const [state, setState] = useState<ChatPanelState>({ isOpen: false })
+  const [selectedEventIds, setSelectedEventIds] = useState<string[]>([])
   const isOpenRef = useRef(false)
+
+  // Clear selections when the day changes
+  const prevDayKeyRef = useRef(dayKey)
+  useEffect(() => {
+    if (prevDayKeyRef.current !== dayKey) {
+      prevDayKeyRef.current = dayKey
+      setSelectedEventIds([])
+    }
+  }, [dayKey])
+
+  const toggleEventId = useCallback((id: string) => {
+    setSelectedEventIds((prev) => {
+      const included = prev.includes(id)
+      if (isOpenRef.current) {
+        // Chat open: toggle in array
+        return included ? prev.filter((x) => x !== id) : [...prev, id]
+      }
+      // Chat closed: max 1 — select or deselect
+      return included ? [] : [id]
+    })
+  }, [])
+
+  const clearSelectedEvents = useCallback(() => {
+    setSelectedEventIds([])
+  }, [])
 
   const openChat = useCallback(() => {
     setState(prev => ({ ...prev, isOpen: true }))
@@ -82,7 +111,18 @@ export function ChatPanelProvider({ dayKey, children }: { dayKey?: string | null
   }, [toggleChat])
 
   return (
-    <ChatPanelContext.Provider value={{ chat, state, openChat, closeChat, toggleChat }}>
+    <ChatPanelContext.Provider
+      value={{
+        chat,
+        state,
+        selectedEventIds,
+        toggleEventId,
+        clearSelectedEvents,
+        openChat,
+        closeChat,
+        toggleChat,
+      }}
+    >
       {children}
     </ChatPanelContext.Provider>
   )

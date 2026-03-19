@@ -2,8 +2,9 @@
 
 import * as React from "react"
 import { format, parseISO } from "date-fns"
-import { CalendarRange, CheckCircle2, CircleDot, Clock3, MapPin, Users } from "lucide-react"
+import { CalendarRange, CheckCircle2, CircleDot, Clock3, MapPin, Sparkles, Users } from "lucide-react"
 
+import { useChatPanel } from "@/components/chat-provider"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { cn } from "@/lib/utils"
@@ -13,8 +14,6 @@ import type { DayEvent, EventTimingState } from "@/hooks/use-day-events"
 type DayEventsProps = {
   date: Date
   dayKey?: string
-  selectedEventId?: string | null
-  onSelectEvent?: (id: string | null) => void
 }
 
 function formatTime(dateString?: string) {
@@ -82,12 +81,14 @@ function DenseEventCard({
   event,
   index,
   isSelected,
+  isInChatContext,
   timingState,
   onSelect,
 }: {
   event: DayEvent
   index: number
   isSelected?: boolean
+  isInChatContext?: boolean
   timingState?: EventTimingState
   onSelect?: () => void
 }) {
@@ -99,74 +100,82 @@ function DenseEventCard({
   )
 
   return (
-    <article
-      className={cn(
-        "group flex border border-border bg-card text-card-foreground transition-colors hover:border-primary",
-        timingState === "past" && "border-dashed opacity-50",
-        timingState === "current" && "border-primary/60 bg-primary/[0.03] shadow-[0_0_0_1px_rgba(0,0,0,0.02)]",
-        isSelected && "border-primary ring-1 ring-primary/30",
-        onSelect && "cursor-pointer",
-      )}
-      onClick={onSelect}
-    >
-      {event.color ? (
-        <div
-          className="w-1 shrink-0"
-          style={{ backgroundColor: event.color.background }}
-        />
-      ) : null}
-      <div className="flex-1 min-w-0">
-        <div className="grid gap-px bg-border md:grid-cols-[auto_minmax(0,1fr)_auto]">
-          <div className={cn(surfaceClassName, "px-3 py-2.5")}>
-            <div className={cn(
-              "flex min-h-10 items-center text-[11px] font-medium uppercase tracking-[0.22em] text-muted-foreground [font-family:var(--font-geist-mono)]",
-              timingState === "current" && "text-primary",
-            )}>
-              {getEventTimeLabel(event)}
-            </div>
-          </div>
-          <div className={cn(surfaceClassName, "px-3 py-2.5")}>
-            <div className="flex min-h-10 items-center justify-between gap-3">
-              <h3 className={cn(
-                "break-words text-base font-semibold tracking-[-0.03em] text-balance",
-              )}>
-                {event.title}
-              </h3>
-              {timingLabel ? (
-                <span className={cn(
-                  "shrink-0 text-[10px] font-medium uppercase tracking-[0.22em] [font-family:var(--font-geist-mono)]",
-                  timingState === "current" && "text-primary",
-                )}>
-                  {timingLabel}
-                </span>
-              ) : null}
-            </div>
-          </div>
-          <div className={cn(surfaceClassName, "px-3 py-2.5")}>
-            <div className={cn(
-              "flex min-h-10 items-center justify-end text-[11px] font-medium uppercase tracking-[0.22em] text-muted-foreground [font-family:var(--font-geist-mono)] md:text-right",
-              timingState === "current" && "text-primary/80",
-            )}>
-              #{String(index + 1).padStart(2, "0")}
-            </div>
-          </div>
-        </div>
-
-        {hasDetails ? (
-          <div className="border-t border-border px-3 py-2.5">
-            <EventDetails
-              event={event}
-              iconClassName={cn(
-                "text-muted-foreground",
-                timingState === "current" && "text-primary/80",
-              )}
-              textClassName="text-muted-foreground"
-              compact
-            />
-          </div>
+    <div className="relative">
+      <article
+        className={cn(
+          "group flex min-w-0 border border-border bg-card text-card-foreground transition-colors hover:border-primary",
+          timingState === "past" && "border-dashed opacity-50",
+          timingState === "current" && "border-primary/60 bg-primary/[0.03] shadow-[0_0_0_1px_rgba(0,0,0,0.02)]",
+          isInChatContext && "border-primary/70 bg-primary/[0.04] ring-1 ring-primary/20",
+          isSelected && "border-primary ring-1 ring-primary/30",
+          onSelect && "cursor-pointer",
+        )}
+        onClick={onSelect}
+      >
+        {event.color ? (
+          <div
+            className="w-1 shrink-0"
+            style={{ backgroundColor: event.color.background }}
+          />
         ) : null}
-      </div>
-    </article>
+        <div className="min-w-0 flex-1">
+          <div className="grid gap-px bg-border md:grid-cols-[auto_minmax(0,1fr)_auto]">
+            <div className={cn(surfaceClassName, "px-3 py-2.5")}>
+              <div className={cn(
+                "flex min-h-10 items-center text-[11px] font-medium uppercase tracking-[0.22em] text-muted-foreground [font-family:var(--font-geist-mono)]",
+                timingState === "current" && "text-primary",
+              )}>
+                {getEventTimeLabel(event)}
+              </div>
+            </div>
+            <div className={cn(surfaceClassName, "px-3 py-2.5")}>
+              <div className="flex min-h-10 items-center justify-between gap-3">
+                <h3 className={cn(
+                  "break-words text-base font-semibold tracking-[-0.03em] text-balance",
+                )}>
+                  {event.title}
+                </h3>
+                {timingLabel ? (
+                  <span className={cn(
+                    "shrink-0 text-[10px] font-medium uppercase tracking-[0.22em] [font-family:var(--font-geist-mono)]",
+                    timingState === "current" && "text-primary",
+                  )}>
+                    {timingLabel}
+                  </span>
+                ) : null}
+              </div>
+            </div>
+            <div className={cn(surfaceClassName, "px-3 py-2.5")}>
+              <div className={cn(
+                "flex min-h-10 items-center justify-end text-[11px] font-medium uppercase tracking-[0.22em] text-muted-foreground [font-family:var(--font-geist-mono)] md:text-right",
+                timingState === "current" && "text-primary/80",
+              )}>
+                #{String(index + 1).padStart(2, "0")}
+              </div>
+            </div>
+          </div>
+
+          {hasDetails ? (
+            <div className="border-t border-border px-3 py-2.5">
+              <EventDetails
+                event={event}
+                iconClassName={cn(
+                  "text-muted-foreground",
+                  timingState === "current" && "text-primary/80",
+                )}
+                textClassName="text-muted-foreground"
+                compact
+              />
+            </div>
+          ) : null}
+        </div>
+      </article>
+      {isInChatContext ? (
+        <div className="pointer-events-none absolute -top-3 -right-3 z-20 flex items-center justify-center rounded-full border border-primary/20 bg-background/95 p-2 text-primary shadow-sm">
+          <Sparkles className="size-4" />
+        </div>
+      ) : null}
+    </div>
   )
 }
 
@@ -187,7 +196,8 @@ function DayEventsSkeleton() {
   )
 }
 
-export function DayEvents({ date, dayKey, selectedEventId, onSelectEvent }: DayEventsProps) {
+export function DayEvents({ date, dayKey }: DayEventsProps) {
+  const { selectedEventIds, toggleEventId, state: chatState } = useChatPanel()
   const {
     events,
     orderedEvents,
@@ -285,9 +295,10 @@ export function DayEvents({ date, dayKey, selectedEventId, onSelectEvent }: DayE
                 key={event.id ?? `${event.title}-${event.start ?? index}`}
                 event={event}
                 index={index}
-                isSelected={Boolean(event.id && event.id === selectedEventId)}
+                isSelected={Boolean(event.id && (chatState.isOpen ? selectedEventIds.includes(event.id) : selectedEventIds[0] === event.id))}
+                isInChatContext={chatState.isOpen && Boolean(event.id && selectedEventIds.includes(event.id))}
                 timingState={timingState}
-                onSelect={onSelectEvent ? () => onSelectEvent(event.id ?? null) : undefined}
+                onSelect={event.id ? () => toggleEventId(event.id!) : undefined}
               />
             )
           })}

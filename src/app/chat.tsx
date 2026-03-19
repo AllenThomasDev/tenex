@@ -108,14 +108,13 @@ function renderToolMessage(
 }
 
 export function Chat({ dayKey }: ChatProps) {
-  const { chat } = useChatPanel();
-  const { messages, sendMessage, status } = chat;
+  const { chat, selectedEventIds, toggleEventId, clearSelectedEvents } = useChatPanel();
+  const { messages, sendMessage, setMessages, status } = chat;
   const { mutate } = useSWRConfig();
   const { data: dayEvents } = useSWR<DayEvent[]>(dayKey ?? null, fetchDayEvents);
   const refreshedToolCallIdsRef = useRef(new Set<string>());
   const inputContainerRef = useRef<HTMLDivElement>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
-  const [referredEvents, setReferredEvents] = useState<number[]>([]);
 
   const isStreaming = status === "submitted" || status === "streaming";
 
@@ -124,20 +123,14 @@ export function Chat({ dayKey }: ChatProps) {
     [],
   );
 
-  const addReferredEvent = useCallback(
-    (eventIndex: number) => {
-      setReferredEvents((prev) =>
-        prev.includes(eventIndex) ? prev : [...prev, eventIndex],
-      );
+  const handlePickerSelect = useCallback(
+    (eventId: string) => {
+      toggleEventId(eventId);
       getTextarea()?.focus();
       setPickerOpen(false);
     },
-    [getTextarea],
+    [toggleEventId, getTextarea],
   );
-
-  const removeReferredEvent = useCallback((eventIndex: number) => {
-    setReferredEvents((prev) => prev.filter((i) => i !== eventIndex));
-  }, []);
 
   const handleTextareaKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -173,8 +166,30 @@ export function Chat({ dayKey }: ChatProps) {
     }
   }, [dayKey, messages, mutate]);
 
+  const handleClearChat = useCallback(() => {
+    setMessages([]);
+    clearSelectedEvents();
+  }, [setMessages, clearSelectedEvents]);
+
+  // Build the list of selected DayEvent objects for display
+  const selectedDayEvents = dayEvents
+    ? selectedEventIds
+        .map((id) => dayEvents.find((e) => e.id === id))
+        .filter((e): e is DayEvent => Boolean(e))
+    : [];
+
   return (
     <div className="flex h-full flex-col">
+      <div className="flex items-center justify-between border-b border-border px-4 py-2">
+        <span className="text-sm font-medium text-foreground">Chat</span>
+        <button
+          type="button"
+          onClick={handleClearChat}
+          className="rounded-md px-2 py-1 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+        >
+          Clear
+        </button>
+      </div>
       <Conversation className="flex-1">
         <ConversationContent className="gap-3 p-4">
           {messages.length === 0 && (
@@ -305,14 +320,12 @@ export function Chat({ dayKey }: ChatProps) {
 
       {/* Pinned input */}
       <div ref={inputContainerRef} className="shrink-0 p-3">
-        {referredEvents.length > 0 && dayEvents ? (
+        {selectedDayEvents.length > 0 ? (
           <div className="mb-1.5 flex flex-wrap gap-1">
-            {referredEvents.map((eventIndex) => {
-              const event = dayEvents[eventIndex];
-              if (!event) return null;
+            {selectedDayEvents.map((event) => {
               return (
                 <span
-                  key={eventIndex}
+                  key={event.id}
                   className="inline-flex items-center gap-1 rounded-md bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary"
                 >
                   <CalendarDays className="size-3" />
@@ -320,7 +333,7 @@ export function Chat({ dayKey }: ChatProps) {
                   <button
                     type="button"
                     className="ml-0.5 rounded-sm hover:bg-primary/20"
-                    onClick={() => removeReferredEvent(eventIndex)}
+                    onClick={() => toggleEventId(event.id!)}
                   >
                     <XIcon className="size-3" />
                   </button>
@@ -334,19 +347,16 @@ export function Chat({ dayKey }: ChatProps) {
             <PromptInput
               onSubmit={({ text }) => {
                 setPickerOpen(false);
-                const selectedEvents = referredEvents
-                  .map((eventIndex) => dayEvents?.[eventIndex])
-                  .filter((event): event is DayEvent => Boolean(event))
-                  .map(toReferredEvent)
+                const referredEvents = selectedDayEvents.map(toReferredEvent);
 
                 sendMessage({
                   text,
                   metadata:
-                    selectedEvents.length > 0
-                      ? { referredEvents: selectedEvents }
+                    referredEvents.length > 0
+                      ? { referredEvents }
                       : undefined,
                 });
-                setReferredEvents([]);
+                clearSelectedEvents();
               }}
             >
               <PromptInputTextarea
@@ -369,15 +379,16 @@ export function Chat({ dayKey }: ChatProps) {
               <CommandInput autoFocus placeholder="Search events…" />
               <CommandList>
                 <CommandGroup heading="Reference an event">
-                  {dayEvents?.map((event, i) => {
+                  {dayEvents?.map((event) => {
+                    if (!event.id) return null;
                     const time = eventTimeLabel(event);
-                    const alreadyAdded = referredEvents.includes(i);
+                    const alreadyAdded = selectedEventIds.includes(event.id);
                     return (
                       <CommandItem
-                        key={event.id ?? i}
+                        key={event.id}
                         value={event.title}
                         disabled={alreadyAdded}
-                        onSelect={() => addReferredEvent(i)}
+                        onSelect={() => handlePickerSelect(event.id!)}
                       >
                         <CalendarDays className="text-muted-foreground" />
                         <span className="min-w-0 truncate">{event.title}</span>
