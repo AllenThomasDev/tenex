@@ -34,7 +34,7 @@ export function AppShell({ user }: AppShellProps) {
   )
 
   return (
-    <ChatPanelProvider dayKey={selectedDayKey}>
+    <ChatPanelProvider selectedDate={selectedDate}>
       <AppShellInner user={user} selectedDate={selectedDate} setSelectedDate={setSelectedDate} selectedDayKey={selectedDayKey} />
     </ChatPanelProvider>
   )

@@ -64,9 +64,10 @@ export async function POST(req: Request) {
     );
   }
 
-  const { messages, timezone } = (await req.json()) as {
+  const { messages, timezone, selectedDateLabel } = (await req.json()) as {
     messages: CalendarChatMessage[]
     timezone?: string
+    selectedDateLabel?: string
   }
 
   let resolvedMessages = messages;
@@ -83,6 +84,7 @@ export async function POST(req: Request) {
     options: {
       accessToken,
       timezone: timezone ?? "America/Chicago",
+      selectedDateLabel,
       userName: session.user.name ?? undefined,
       userEmail: session.user.email,
     },

@@ -33,6 +33,7 @@ export const calendarAgent = new ToolLoopAgent({
   callOptionsSchema: z.object({
     accessToken: z.string(),
     timezone: z.string(),
+    selectedDateLabel: z.string().optional(),
     userName: z.string().optional(),
     userEmail: z.string().optional(),
   }),
@@ -42,6 +43,12 @@ export const calendarAgent = new ToolLoopAgent({
 
 Current time: ${new Date().toLocaleString("en-US", { timeZone: options.timezone, dateStyle: "full", timeStyle: "long" })}
 Timezone: ${options.timezone}
+${options.selectedDateLabel ? `Currently selected calendar day in the UI: ${options.selectedDateLabel}
+
+Treat the selected calendar day as the default day-in-view context.
+If the user asks to create, find, move, update, or delete an event without naming a date, and the request could reasonably refer to the day they are currently viewing, assume they mean this selected day unless the conversation clearly points to another date.
+When searching for an event to modify and the date is otherwise ambiguous, search the selected calendar day first. Do not default to today just because it is the current date.
+` : ""}
 
 When asked about events, use the appropriate tools to fetch, search, create, update, or delete them.
 Use displayContacts whenever you search for a person by name, email, or phone number. Always show the contact results UI before using a found email to create or update an event.

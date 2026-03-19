@@ -2,6 +2,7 @@
 
 import { useChat } from "@ai-sdk/react"
 import { DefaultChatTransport } from "ai"
+import { format } from "date-fns"
 import {
   createContext,
   useCallback,
@@ -39,17 +40,26 @@ export function useChatPanel() {
   return ctx
 }
 
-export function ChatPanelProvider({ dayKey, children }: { dayKey?: string | null; children: ReactNode }) {
+export function ChatPanelProvider({
+  selectedDate,
+  children,
+}: {
+  selectedDate: Date
+  children: ReactNode
+}) {
+  const selectedDateRef = useRef(selectedDate)
+  selectedDateRef.current = selectedDate
+
   const transport = useMemo(
     () =>
       new DefaultChatTransport<CalendarChatMessage>({
         api: "/api/chat",
         body: () => ({
           timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-          dayKey,
+          selectedDateLabel: format(selectedDateRef.current, "EEEE, MMMM d, yyyy"),
         }),
       }),
-    [dayKey],
+    [],
   )
   const chat = useChat<CalendarChatMessage>({ transport })
   const [state, setState] = useState<ChatPanelState>({ isOpen: false })
@@ -57,13 +67,13 @@ export function ChatPanelProvider({ dayKey, children }: { dayKey?: string | null
   const isOpenRef = useRef(false)
 
   // Clear selections when the day changes
-  const prevDayKeyRef = useRef(dayKey)
+  const prevSelectedDateRef = useRef(selectedDate)
   useEffect(() => {
-    if (prevDayKeyRef.current !== dayKey) {
-      prevDayKeyRef.current = dayKey
+    if (prevSelectedDateRef.current.getTime() !== selectedDate.getTime()) {
+      prevSelectedDateRef.current = selectedDate
       setSelectedEventIds([])
     }
-  }, [dayKey])
+  }, [selectedDate])
 
   const toggleEventId = useCallback((id: string) => {
     setSelectedEventIds((prev) => {
