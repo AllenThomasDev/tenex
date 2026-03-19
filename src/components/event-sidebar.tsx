@@ -420,7 +420,7 @@ export function EventSidebarPanel({ dayKey, selectedEventId }: EventSidebarPanel
     return events.find((e) => e.id === selectedEventId) ?? null
   }, [events, selectedEventId])
 
-  if (isLoading || !events) {
+  if ((isLoading || !events) && selectedEventId) {
     return (
       <div className="flex h-full flex-col">
         <div className="shrink-0 px-4 py-3 border-b border-border">
