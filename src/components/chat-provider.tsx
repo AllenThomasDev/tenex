@@ -20,6 +20,7 @@ interface ChatPanelState {
 interface ChatPanelContextValue {
   chat: ReturnType<typeof useChat>
   state: ChatPanelState
+  dayKeyRef: React.RefObject<string | null>
   openChat: () => void
   closeChat: () => void
   toggleChat: () => void
@@ -33,14 +34,18 @@ export function useChatPanel() {
   return ctx
 }
 
-export function ChatPanelProvider({ children }: { children: ReactNode }) {
+export function ChatPanelProvider({ dayKey, children }: { dayKey?: string | null; children: ReactNode }) {
+  const dayKeyRef = useRef<string | null>(dayKey ?? null)
+  dayKeyRef.current = dayKey ?? null
+
   const transport = useMemo(
     () =>
       new DefaultChatTransport({
         api: "/api/chat",
-        body: {
+        body: () => ({
           timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-        },
+          dayKey: dayKeyRef.current,
+        }),
       }),
     [],
   )
@@ -79,7 +84,7 @@ export function ChatPanelProvider({ children }: { children: ReactNode }) {
   }, [toggleChat])
 
   return (
-    <ChatPanelContext.Provider value={{ chat, state, openChat, closeChat, toggleChat }}>
+    <ChatPanelContext.Provider value={{ chat, state, dayKeyRef, openChat, closeChat, toggleChat }}>
       {children}
     </ChatPanelContext.Provider>
   )

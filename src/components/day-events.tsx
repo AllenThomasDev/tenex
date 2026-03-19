@@ -1,40 +1,14 @@
 "use client"
 
 import * as React from "react"
-import { format, isPast, isToday, parseISO, startOfDay } from "date-fns"
+import { format, parseISO } from "date-fns"
 import { CalendarRange, CheckCircle2, CircleDot, Clock3, MapPin, Users } from "lucide-react"
-import useSWR from "swr"
 
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { cn } from "@/lib/utils"
-import { getCalendarDayKey } from "@/lib/calendar-day"
-
-type DayEvent = {
-  id?: string
-  title: string
-  start?: string
-  end?: string
-  isAllDay: boolean
-  location?: string
-  attendeesCount: number
-  attendees?: { email?: string; displayName?: string; responseStatus?: string; self?: boolean; optional?: boolean }[]
-  status?: string
-  htmlLink?: string
-  description?: string
-  hangoutLink?: string
-  conferenceLink?: string
-  organizer?: { email?: string; displayName?: string; self?: boolean }
-  selfResponseStatus?: string
-  colorId?: string
-  color?: { background: string; foreground: string }
-  recurringEventId?: string
-  visibility?: string
-}
-
-type CalendarResponse = {
-  events: DayEvent[]
-}
+import { useDayEvents } from "@/hooks/use-day-events"
+import type { DayEvent, EventTimingState } from "@/hooks/use-day-events"
 
 type DayEventsProps = {
   date: Date
@@ -59,36 +33,6 @@ function formatTime(dateString?: string) {
 
 function getEventTimeLabel(event: DayEvent) {
   return event.isAllDay ? "All day" : `${formatTime(event.start)} - ${formatTime(event.end)}`
-}
-
-type EventTimingState = "past" | "current" | "upcoming" | null
-
-type TimedDayEvent = {
-  event: DayEvent
-  timingState: EventTimingState
-}
-
-function getEventTimingState(event: DayEvent, now: Date, shouldCompare: boolean): EventTimingState {
-  if (!shouldCompare || event.isAllDay || !event.start || !event.end) {
-    return null
-  }
-
-  const start = parseISO(event.start)
-  const end = parseISO(event.end)
-
-  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
-    return null
-  }
-
-  if (now > end) {
-    return "past"
-  }
-
-  if (now >= start && now <= end) {
-    return "current"
-  }
-
-  return "upcoming"
 }
 
 function EventDetails({
@@ -243,103 +187,18 @@ function DayEventsSkeleton() {
   )
 }
 
-async function fetchEvents(url: string): Promise<DayEvent[]> {
-  const response = await fetch(url)
-
-  if (!response.ok) {
-    const data = (await response.json().catch(() => null)) as {
-      error?: string
-    } | null
-
-    throw new Error(data?.error ?? "Could not load calendar events.")
-  }
-
-  const data = (await response.json()) as CalendarResponse
-
-  return data.events
-}
-
 export function DayEvents({ date, dayKey, selectedEventId, onSelectEvent }: DayEventsProps) {
-  const swrKey = React.useMemo(() => dayKey ?? getCalendarDayKey(date), [date, dayKey])
-  const { data: events, error, isLoading, mutate } = useSWR<DayEvent[]>(
-    swrKey,
-    fetchEvents,
-  )
+  const {
+    events,
+    orderedEvents,
+    eventSummary,
+    error,
+    isLoading,
+    mutate,
+    isViewingToday,
+    isViewingPastDay,
+  } = useDayEvents(date, dayKey)
   const showSkeleton = !events && isLoading
-  const [now, setNow] = React.useState(() => new Date())
-  const isViewingToday = isToday(date)
-  const isViewingPastDay = !isViewingToday && isPast(startOfDay(date))
-  const shouldShowTiming = isViewingToday || isViewingPastDay
-  const timedEvents = React.useMemo<TimedDayEvent[]>(() => {
-    if (!events) return []
-
-    return events.map((event) => ({
-      event,
-      timingState: getEventTimingState(event, now, shouldShowTiming),
-    }))
-  }, [events, now, shouldShowTiming])
-  const orderedEvents = React.useMemo(() => {
-    if (!shouldShowTiming) return timedEvents
-
-    const upcomingOrCurrent: TimedDayEvent[] = []
-    const past: TimedDayEvent[] = []
-
-    for (const timedEvent of timedEvents) {
-      const { timingState } = timedEvent
-      if (timingState === "past") {
-        past.push(timedEvent)
-      } else {
-        upcomingOrCurrent.push(timedEvent)
-      }
-    }
-
-    return [...upcomingOrCurrent, ...past]
-  }, [shouldShowTiming, timedEvents])
-  const eventSummary = React.useMemo(() => {
-    if (timedEvents.length === 0) {
-      return {
-        total: 0,
-        past: 0,
-        current: 0,
-        upcoming: 0,
-      }
-    }
-
-    let pastCount = 0
-    let currentCount = 0
-    let upcomingCount = 0
-
-    for (const { timingState } of timedEvents) {
-      if (timingState === "past") {
-        pastCount += 1
-      } else if (timingState === "current") {
-        currentCount += 1
-      } else {
-        upcomingCount += 1
-      }
-    }
-
-    return {
-      total: timedEvents.length,
-      past: pastCount,
-      current: currentCount,
-      upcoming: upcomingCount,
-    }
-  }, [timedEvents])
-
-  React.useEffect(() => {
-    if (!isViewingToday) return
-
-    const intervalId = window.setInterval(() => {
-      setNow(new Date())
-    }, 60_000)
-
-    setNow(new Date())
-
-    return () => {
-      window.clearInterval(intervalId)
-    }
-  }, [isViewingToday, date])
 
   return (
     <section aria-labelledby="events-heading" className="space-y-4">

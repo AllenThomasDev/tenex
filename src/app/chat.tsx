@@ -1,8 +1,14 @@
 "use client";
 
 import { getToolName, isToolUIPart } from "ai";
-import { useEffect, useRef } from "react";
+import { format, parseISO } from "date-fns";
+import { CalendarDays } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import useSWR from "swr";
 import { useSWRConfig } from "swr";
+
+import { type DayEvent, fetchDayEvents } from "@/hooks/use-day-events";
+import { cn } from "@/lib/utils";
 
 import { useChatPanel } from "@/components/chat-provider";
 import { ChatEventList } from "@/components/chat-event-list";
@@ -39,6 +45,107 @@ const DAY_MUTATION_TOOLS = new Set([
   "deleteEvent",
 ]);
 
+function formatEventTime(dateString?: string) {
+  if (!dateString) return ""
+  try {
+    return format(parseISO(dateString), "h:mm a")
+  } catch {
+    return ""
+  }
+}
+
+function EventPicker({
+  events,
+  activeIndex,
+  onSelect,
+}: {
+  events: DayEvent[]
+  activeIndex: number
+  onSelect: (index: number) => void
+}) {
+  return (
+    <div className="absolute bottom-full left-0 right-0 z-50 mb-1 overflow-hidden rounded-lg border border-border bg-popover shadow-md">
+      <div className="flex items-center gap-1.5 border-b border-border px-3 py-1.5">
+        <CalendarDays className="size-3 text-muted-foreground" />
+        <span className="text-xs font-medium text-muted-foreground">
+          Reference an event
+        </span>
+      </div>
+      <div className="max-h-48 overflow-y-auto py-1">
+        {events.map((event, i) => {
+          const num = String(i + 1).padStart(2, "0")
+          const time = event.isAllDay
+            ? "All day"
+            : [formatEventTime(event.start), formatEventTime(event.end)]
+                .filter(Boolean)
+                .join(" – ")
+          return (
+            <button
+              key={event.id ?? i}
+              type="button"
+              className={cn(
+                "flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm transition-colors hover:bg-accent",
+                i === activeIndex && "bg-accent",
+              )}
+              onMouseDown={(e) => {
+                e.preventDefault()
+                onSelect(i)
+              }}
+            >
+              <span className="shrink-0 rounded bg-primary/10 px-1 py-0.5 font-mono text-xs font-medium text-primary">
+                #{num}
+              </span>
+              <span className="min-w-0 truncate font-medium">{event.title}</span>
+              {time && (
+                <span className="ml-auto shrink-0 text-xs text-muted-foreground">
+                  {time}
+                </span>
+              )}
+            </button>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
+function EventRefText({
+  text,
+  events,
+}: {
+  text: string
+  events: DayEvent[] | undefined
+}) {
+  if (!events?.length) return <>{text}</>
+
+  const parts = text.split(/(#\d{2}\b)/g)
+
+  return (
+    <>
+      {parts.map((segment, i) => {
+        const match = segment.match(/^#(\d{2})$/)
+        if (!match) return <span key={i}>{segment}</span>
+
+        const index = parseInt(match[1], 10) - 1
+        if (index < 0 || index >= events.length) {
+          return <span key={i}>{segment}</span>
+        }
+
+        const event = events[index]
+        return (
+          <span
+            key={i}
+            className="inline-flex items-baseline gap-1 rounded-sm bg-primary/10 px-1 font-medium text-primary"
+          >
+            {event.title}
+            <span className="text-xs opacity-50">{segment}</span>
+          </span>
+        )
+      })}
+    </>
+  )
+}
+
 function renderToolMessage(
   part: Parameters<typeof getToolName>[0] & {
     state: string;
@@ -65,9 +172,90 @@ export function Chat({ dayKey }: ChatProps) {
   const { chat } = useChatPanel();
   const { messages, sendMessage, status } = chat;
   const { mutate } = useSWRConfig();
+  const { data: dayEvents } = useSWR<DayEvent[]>(dayKey ?? null, fetchDayEvents);
   const refreshedToolCallIdsRef = useRef(new Set<string>());
+  const inputContainerRef = useRef<HTMLDivElement>(null);
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [pickerIndex, setPickerIndex] = useState(0);
+  const pickerHashPosRef = useRef<number>(-1);
 
   const isStreaming = status === "submitted" || status === "streaming";
+
+  const getTextarea = useCallback(
+    () => inputContainerRef.current?.querySelector("textarea") ?? null,
+    [],
+  );
+
+  const handlePickerSelect = useCallback(
+    (eventIndex: number) => {
+      const textarea = getTextarea();
+      if (!textarea) return;
+
+      const token = `#${String(eventIndex + 1).padStart(2, "0")}`
+      const hashPos = pickerHashPosRef.current;
+      const before = textarea.value.slice(0, hashPos);
+      const cursorPos = textarea.selectionStart;
+      const after = textarea.value.slice(cursorPos);
+      const newValue = before + token + after;
+
+      const nativeSetter = Object.getOwnPropertyDescriptor(
+        HTMLTextAreaElement.prototype,
+        "value",
+      )!.set!;
+      nativeSetter.call(textarea, newValue);
+      textarea.dispatchEvent(new Event("input", { bubbles: true }));
+      const newPos = before.length + token.length;
+      textarea.setSelectionRange(newPos, newPos);
+      textarea.focus();
+      setPickerOpen(false);
+    },
+    [getTextarea],
+  );
+
+  const handleTextareaChange = useCallback(
+    (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+      if (!dayEvents?.length) {
+        setPickerOpen(false);
+        return;
+      }
+
+      const textarea = e.currentTarget;
+      const pos = textarea.selectionStart;
+      const textBefore = textarea.value.slice(0, pos);
+
+      // Check if cursor is right after a `#` possibly followed by digits
+      const match = textBefore.match(/#(\d{0,2})$/);
+      if (match) {
+        pickerHashPosRef.current = pos - match[0].length;
+        setPickerOpen(true);
+        setPickerIndex(0);
+      } else {
+        setPickerOpen(false);
+      }
+    },
+    [dayEvents],
+  );
+
+  const handleTextareaKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+      if (!pickerOpen || !dayEvents?.length) return;
+
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        setPickerIndex((prev) => Math.min(prev + 1, dayEvents.length - 1));
+      } else if (e.key === "ArrowUp") {
+        e.preventDefault();
+        setPickerIndex((prev) => Math.max(prev - 1, 0));
+      } else if (e.key === "Enter" || e.key === "Tab") {
+        e.preventDefault();
+        handlePickerSelect(pickerIndex);
+      } else if (e.key === "Escape") {
+        e.preventDefault();
+        setPickerOpen(false);
+      }
+    },
+    [pickerOpen, dayEvents, pickerIndex, handlePickerSelect],
+  );
 
   // Refresh the day's events after any calendar mutation tool completes
   useEffect(() => {
@@ -112,12 +300,18 @@ export function Chat({ dayKey }: ChatProps) {
               <MessageContent>
                 {message.parts.map((part, i) => {
                   if (part.type === "text") {
+                    if (message.role === "user") {
+                      return (
+                        <p key={`${message.id}-text-${i}`} className="text-sm whitespace-pre-wrap">
+                          <EventRefText text={part.text} events={dayEvents} />
+                        </p>
+                      );
+                    }
                     return (
                       <MessageResponse
                         key={`${message.id}-text-${i}`}
                         isAnimating={
                           isStreaming &&
-                          message.role === "assistant" &&
                           message === messages[messages.length - 1]
                         }
                       >
@@ -206,9 +400,17 @@ export function Chat({ dayKey }: ChatProps) {
       </Conversation>
 
       {/* Pinned input */}
-      <div className="shrink-0 p-3">
+      <div ref={inputContainerRef} className="relative shrink-0 p-3">
+        {pickerOpen && dayEvents?.length ? (
+          <EventPicker
+            events={dayEvents}
+            activeIndex={pickerIndex}
+            onSelect={handlePickerSelect}
+          />
+        ) : null}
         <PromptInput
           onSubmit={({ text }) => {
+            setPickerOpen(false);
             sendMessage({ text });
           }}
         >
@@ -217,6 +419,8 @@ export function Chat({ dayKey }: ChatProps) {
             autoComplete="off"
             spellCheck={false}
             className="min-h-[38px]"
+            onChange={handleTextareaChange}
+            onKeyDown={handleTextareaKeyDown}
           />
           <PromptInputSubmit status={status} onStop={chat.stop} />
         </PromptInput>

@@ -89,7 +89,7 @@ export function AppShell({ user }: AppShellProps) {
   }, [selectedDate])
 
   return (
-    <ChatPanelProvider>
+    <ChatPanelProvider dayKey={selectedDayKey}>
       <AppNavbar user={user} />
       <div className="flex h-svh flex-col pt-10 overflow-hidden">
       <SidebarProvider className="flex-1 min-h-0">
