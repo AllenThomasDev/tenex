@@ -114,9 +114,12 @@ function NotesEditor({
 
   React.useEffect(() => {
     if (!isEditing) return
-    textareaRef.current?.focus()
-    textareaRef.current?.setSelectionRange(draft.length, draft.length)
-  }, [draft.length, isEditing])
+    const el = textareaRef.current
+    if (!el) return
+    el.focus()
+    const len = el.value.length
+    el.setSelectionRange(len, len)
+  }, [isEditing])
 
   async function saveNotes() {
     if (!event.id || isSaving) return
