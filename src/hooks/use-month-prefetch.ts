@@ -72,6 +72,18 @@ function bucketEventsByDay(events: CalendarEvent[], timeZone: string) {
   return days
 }
 
+function getMonthDateKeys(year: number, month: number, timeZone: string) {
+  const start = new TZDate(year, month - 1, 1, timeZone)
+  const end = addMonths(start, 1)
+  const dateKeys: string[] = []
+
+  for (let cursor = new Date(start.getTime()); cursor < end; cursor = new Date(cursor.getTime() + 86_400_000)) {
+    dateKeys.push(getLocalDateKey(cursor, timeZone))
+  }
+
+  return dateKeys
+}
+
 export function useMonthPrefetch(selectedDate: Date) {
   const { cache, mutate } = useSWRConfig()
 
@@ -108,14 +120,14 @@ export function useMonthPrefetch(selectedDate: Date) {
         if (!data) return
 
         const days = bucketEventsByDay(data.events, timeZone)
+        const monthDateKeys = getMonthDateKeys(year, month, timeZone)
 
-        for (const [dateStr, events] of Object.entries(days)) {
+        for (const dateStr of monthDateKeys) {
+          const events = days[dateStr] ?? []
           const [y, m, d] = dateStr.split("-").map(Number)
           const dayDate = new Date(y, m - 1, d)
           const swrKey = getCalendarDayKey(dayDate)
-          if (!cache.get(swrKey)?.data) {
-            mutate(swrKey, events, { revalidate: false })
-          }
+          mutate(swrKey, events, { revalidate: false })
         }
 
         mutate(prefetchKey, { fetchedAt: Date.now() }, { revalidate: false })

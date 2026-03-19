@@ -7,7 +7,11 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import useSWR from "swr";
 import { useSWRConfig } from "swr";
 
-import { type DayEvent, fetchDayEvents } from "@/hooks/use-day-events";
+import {
+  type DayEvent,
+  fetchDayEvents,
+  fetchFreshDayEvents,
+} from "@/hooks/use-day-events";
 
 import { useChatPanel } from "@/components/chat-provider";
 import { ChatEventList } from "@/components/chat-event-list";
@@ -116,6 +120,24 @@ const TOOL_TITLES: Record<string, string> = {
   listColors: "List colors",
 };
 
+const EXAMPLE_PROMPTS = [
+  {
+    label: "Multi-step planning",
+    prompt:
+      "I have three meetings I need to schedule with Joe, Dan, and Sally. I really want to block my mornings off to work out, so can you write me an email draft I can share with each of them?",
+  },
+  {
+    label: "Meeting analysis",
+    prompt:
+      "How much of my time am I spending in meetings this week? How would you recommend I decrease that?",
+  },
+  {
+    label: "Availability + scheduling",
+    prompt:
+      "Show me my availability tomorrow afternoon and find a good 30-minute slot for coffee with Sarah.",
+  },
+];
+
 export function Chat({ dayKey }: ChatProps) {
   const { chat, selectedEventIds, toggleEventId, clearSelectedEvents } = useChatPanel();
   const { messages, sendMessage, setMessages, status } = chat;
@@ -171,15 +193,28 @@ export function Chat({ dayKey }: ChatProps) {
 
     if (dayKeysToRefresh.size > 0) {
       void Promise.all(
-        Array.from(dayKeysToRefresh, (affectedDayKey) => mutate(affectedDayKey)),
+        Array.from(dayKeysToRefresh, (affectedDayKey) =>
+          mutate(affectedDayKey, fetchFreshDayEvents(affectedDayKey), {
+            revalidate: false,
+          }),
+        ),
       );
     }
   }, [messages, mutate]);
 
   const handleClearChat = useCallback(() => {
+    chat.stop();
     setMessages([]);
     clearSelectedEvents();
-  }, [setMessages, clearSelectedEvents]);
+  }, [chat, setMessages, clearSelectedEvents]);
+
+  const handleExamplePrompt = useCallback(
+    (text: string) => {
+      sendMessage({ text });
+      clearSelectedEvents();
+    },
+    [sendMessage, clearSelectedEvents],
+  );
 
   // Build the list of selected DayEvent objects for display
   const selectedDayEvents = dayEvents
@@ -209,7 +244,26 @@ export function Chat({ dayKey }: ChatProps) {
               }
               title={assistant.name}
               description={assistant.tagline}
-            />
+            >
+              <div className="flex w-full max-w-xl flex-col items-center gap-3">
+                <div className="text-muted-foreground text-sm">Try asking:</div>
+                <div className="grid w-full gap-2">
+                  {EXAMPLE_PROMPTS.map((example) => (
+                    <button
+                      key={example.label}
+                      type="button"
+                      onClick={() => handleExamplePrompt(example.prompt)}
+                      className="rounded-xl border border-border bg-background px-4 py-3 text-left transition-colors hover:bg-muted"
+                    >
+                      <div className="mb-1 text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground">
+                        {example.label}
+                      </div>
+                      <div className="text-sm text-foreground">{example.prompt}</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </ConversationEmptyState>
           )}
 
           {messages.map((message) => {

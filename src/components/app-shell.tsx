@@ -3,6 +3,7 @@
 import * as React from "react"
 import { addDays, differenceInCalendarDays, format, isSameDay, subDays } from "date-fns"
 import { ChevronLeft, ChevronRight } from "lucide-react"
+import { useSWRConfig } from "swr"
 
 import { AppSidebar } from "@/components/app-sidebar"
 import { DayEvents, DayEventsHeader } from "@/components/day-events"
@@ -15,7 +16,9 @@ import { AppNavbar } from "@/components/app-navbar"
 import { CommandMenu } from "@/components/command-menu"
 import { KeyboardShortcutsDialog } from "@/components/keyboard-shortcuts-dialog"
 import { getCalendarDayKey } from "@/lib/calendar-day"
+import { fetchDayEvents } from "@/hooks/use-day-events"
 import { useMonthPrefetch } from "@/hooks/use-month-prefetch"
+import { preload } from "swr"
 import { cn } from "@/lib/utils"
 
 type AppShellProps = {
@@ -32,6 +35,23 @@ export function AppShell({ user }: AppShellProps) {
     () => getCalendarDayKey(selectedDate),
     [selectedDate]
   )
+  const { mutate } = useSWRConfig()
+  const userCacheKey = user?.email ?? null
+  const previousUserCacheKeyRef = React.useRef(userCacheKey)
+
+  React.useEffect(() => {
+    if (previousUserCacheKeyRef.current === userCacheKey) return
+
+    previousUserCacheKeyRef.current = userCacheKey
+
+    void mutate(
+      (key) =>
+        typeof key === "string" &&
+        (key.startsWith("/api/calendar?") || key.startsWith("calendar-month-prefetch:")),
+      undefined,
+      { revalidate: false },
+    )
+  }, [mutate, userCacheKey])
 
   return (
     <ChatPanelProvider selectedDate={selectedDate}>
@@ -61,12 +81,20 @@ function AppShellInner({
 
   const goToPreviousDay = React.useCallback(() => {
     setDateMotion("left")
-    setSelectedDate((d) => subDays(d, 1))
+    setSelectedDate((d) => {
+      const next = subDays(d, 1)
+      preload(getCalendarDayKey(next), fetchDayEvents)
+      return next
+    })
   }, [setSelectedDate])
 
   const goToNextDay = React.useCallback(() => {
     setDateMotion("right")
-    setSelectedDate((d) => addDays(d, 1))
+    setSelectedDate((d) => {
+      const next = addDays(d, 1)
+      preload(getCalendarDayKey(next), fetchDayEvents)
+      return next
+    })
   }, [setSelectedDate])
 
   React.useEffect(() => {
@@ -88,6 +116,8 @@ function AppShellInner({
   }, [goToPreviousDay, goToNextDay])
 
   function handleSelectDate(nextDate: Date) {
+    preload(getCalendarDayKey(nextDate), fetchDayEvents)
+
     if (isSameDay(nextDate, selectedDate)) {
       setSelectedDate(new Date(nextDate))
       return

@@ -61,8 +61,11 @@ function getEventTimingState(event: DayEvent, now: Date, shouldCompare: boolean)
   return "upcoming"
 }
 
-export async function fetchDayEvents(url: string): Promise<DayEvent[]> {
-  const response = await fetch(url, { cache: "no-store" })
+async function fetchDayEventsWithInit(
+  url: string,
+  init?: RequestInit,
+): Promise<DayEvent[]> {
+  const response = await fetch(url, init)
 
   if (!response.ok) {
     const data = (await response.json().catch(() => null)) as {
@@ -75,6 +78,14 @@ export async function fetchDayEvents(url: string): Promise<DayEvent[]> {
   const data = (await response.json()) as CalendarResponse
 
   return data.events
+}
+
+export async function fetchDayEvents(url: string): Promise<DayEvent[]> {
+  return fetchDayEventsWithInit(url)
+}
+
+export async function fetchFreshDayEvents(url: string): Promise<DayEvent[]> {
+  return fetchDayEventsWithInit(url, { cache: "no-store" })
 }
 
 export function useDayEvents(date: Date, dayKey?: string) {
