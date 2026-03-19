@@ -15,6 +15,7 @@ import {
   Lock,
   Globe,
   ArrowUpRight,
+  MessageSquare,
 } from "lucide-react"
 
 import { cn } from "@/lib/utils"
@@ -91,9 +92,12 @@ function statusDot(status?: string) {
 
 function EmptyState() {
   return (
-    <div className="flex h-full items-center justify-center px-6">
-      <p className="text-[11px] uppercase tracking-[0.22em] text-muted-foreground [font-family:var(--font-geist-mono)] text-center leading-relaxed">
+    <div className="flex h-full flex-col items-center justify-center px-6">
+      <p className="text-[13px] text-muted-foreground text-center leading-relaxed">
         Select an event<br />to view details
+      </p>
+      <p className="mt-4 text-[11px] tracking-wide text-muted-foreground/60 [font-family:var(--font-geist-mono)]">
+        or <kbd className="rounded border border-border bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">⌘I</kbd> to chat
       </p>
     </div>
   )
@@ -388,6 +392,15 @@ function Inspector({
           </span>
           <NotesEditor key={notesEditorKey} event={event} onUpdate={onUpdate} />
         </div>
+      </div>
+
+      {/* Shortcut hint */}
+      <div className="shrink-0 flex items-center justify-center gap-2 border-t border-border px-4 py-3 text-muted-foreground">
+        <MessageSquare className="size-3.5" />
+        <span className="text-[11px] tracking-wide [font-family:var(--font-geist-mono)]">
+          <kbd className="rounded border border-border bg-muted px-1.5 py-0.5 text-[10px] font-medium">⌘I</kbd>
+          {" "}to chat about this event
+        </span>
       </div>
     </div>
   )

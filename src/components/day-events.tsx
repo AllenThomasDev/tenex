@@ -107,7 +107,7 @@ function DenseEventCard({
           timingState === "past" && "border-dashed opacity-50",
           timingState === "current" && "border-primary/60 bg-primary/[0.03] shadow-[0_0_0_1px_rgba(0,0,0,0.02)]",
           isInChatContext && "border-primary/70 bg-primary/[0.04] ring-1 ring-primary/20",
-          isSelected && "border-primary ring-1 ring-primary/30",
+          isSelected && "border-primary bg-primary/[0.06] ring-2 ring-primary/50 shadow-sm",
           onSelect && "cursor-pointer",
         )}
         onClick={onSelect}
