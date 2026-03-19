@@ -1,7 +1,8 @@
 "use client"
 
 import * as React from "react"
-import { differenceInCalendarDays, format, isSameDay } from "date-fns"
+import { addDays, differenceInCalendarDays, format, isSameDay, subDays } from "date-fns"
+import { ChevronLeft, ChevronRight } from "lucide-react"
 
 import { AppSidebar } from "@/components/app-sidebar"
 import { DayEvents } from "@/components/day-events"
@@ -11,6 +12,7 @@ import { ChatPanelProvider, useChatPanel } from "@/components/chat-provider"
 import { ChatPanel } from "@/components/chat-panel"
 import { AppNavbar } from "@/components/app-navbar"
 import { CommandMenu } from "@/components/command-menu"
+import { KeyboardShortcutsDialog } from "@/components/keyboard-shortcuts-dialog"
 import { getCalendarDayKey } from "@/lib/calendar-day"
 import { useMonthPrefetch } from "@/hooks/use-month-prefetch"
 import { cn } from "@/lib/utils"
@@ -55,6 +57,34 @@ function AppShellInner({
   const mainScrollRef = React.useRef<HTMLDivElement>(null)
 
   useMonthPrefetch(selectedDate)
+
+  const goToPreviousDay = React.useCallback(() => {
+    setDateMotion("left")
+    setSelectedDate((d) => subDays(d, 1))
+  }, [setSelectedDate])
+
+  const goToNextDay = React.useCallback(() => {
+    setDateMotion("right")
+    setSelectedDate((d) => addDays(d, 1))
+  }, [setSelectedDate])
+
+  React.useEffect(() => {
+    function onKeyDown(e: KeyboardEvent) {
+      const tag = (e.target as HTMLElement)?.tagName
+      if (tag === "INPUT" || tag === "TEXTAREA" || (e.target as HTMLElement)?.isContentEditable) return
+
+      if (e.key === "h") {
+        e.preventDefault()
+        goToPreviousDay()
+      } else if (e.key === "l") {
+        e.preventDefault()
+        goToNextDay()
+      }
+    }
+
+    window.addEventListener("keydown", onKeyDown)
+    return () => window.removeEventListener("keydown", onKeyDown)
+  }, [goToPreviousDay, goToNextDay])
 
   function handleSelectDate(nextDate: Date) {
     if (isSameDay(nextDate, selectedDate)) {
@@ -134,24 +164,44 @@ function AppShellInner({
                 {user ? (
                   <div className="flex flex-col gap-8">
                     <div className="sticky top-0 z-10 bg-background/95 px-6 pt-8 pb-4 backdrop-blur supports-[backdrop-filter]:bg-background/80">
-                      <div
-                        key={selectedDate.toISOString()}
-                        className={`animate-in fade-in duration-400 ${
-                          dateMotion === "right"
-                            ? "slide-in-from-right-6"
-                            : "slide-in-from-left-6"
-                        }`}
-                      >
-                        <p
-                          className={`mb-2 text-sm font-medium tracking-normal text-muted-foreground ${
-                            dateContextLabel ? "visible" : "invisible"
+                      <div className="flex items-end justify-between gap-4">
+                        <div
+                          key={selectedDate.toISOString()}
+                          className={`min-w-0 flex-1 animate-in fade-in duration-400 ${
+                            dateMotion === "right"
+                              ? "slide-in-from-right-6"
+                              : "slide-in-from-left-6"
                           }`}
                         >
-                          {dateContextLabel ?? "Today"}
-                        </p>
-                        <h1 className="text-4xl font-bold tracking-tight text-foreground">
-                          {format(selectedDate, "EEEE MMMM d, yyyy")}
-                        </h1>
+                          <p
+                            className={`mb-2 text-sm font-medium tracking-normal text-muted-foreground ${
+                              dateContextLabel ? "visible" : "invisible"
+                            }`}
+                          >
+                            {dateContextLabel ?? "Today"}
+                          </p>
+                          <h1 className="text-4xl font-bold tracking-tight text-foreground">
+                            {format(selectedDate, "EEEE MMMM d, yyyy")}
+                          </h1>
+                        </div>
+                        <div className="flex shrink-0 items-center gap-1 pb-1">
+                          <button
+                            onClick={goToPreviousDay}
+                            className="flex size-8 items-center justify-center rounded-md border border-border text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                            aria-label="Previous day"
+                            title="Previous day (h)"
+                          >
+                            <ChevronLeft className="size-4" />
+                          </button>
+                          <button
+                            onClick={goToNextDay}
+                            className="flex size-8 items-center justify-center rounded-md border border-border text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                            aria-label="Next day"
+                            title="Next day (l)"
+                          >
+                            <ChevronRight className="size-4" />
+                          </button>
+                        </div>
                       </div>
                     </div>
                     <div className="px-6">
@@ -187,6 +237,7 @@ function AppShellInner({
 
 
       <CommandMenu onSelectDate={handleSelectDate} />
+      <KeyboardShortcutsDialog />
       <ChatPanel dayKey={selectedDayKey} />
     </>
   )
