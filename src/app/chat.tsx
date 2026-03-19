@@ -127,9 +127,9 @@ const EXAMPLE_PROMPTS = [
       "I have three meetings I need to schedule with Joe, Dan, and Sally. I really want to block my mornings off to work out, so can you write me an email draft I can share with each of them?",
   },
   {
-    label: "Meeting analysis",
+    label: "Schedule review",
     prompt:
-      "How much of my time am I spending in meetings this week? How would you recommend I decrease that?",
+      "Show me all my meetings longer than an hour this week.",
   },
   {
     label: "Availability + scheduling",
